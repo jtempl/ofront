@@ -1,0 +1,26 @@
+.TH SHOWDEF 1
+.SH NAME
+showdef - show interface definition of an Oberon module
+.SH SYNOPSIS
+showdef modulename
+.SH DESCRIPTION
+showdef decodes the symbol file <M>.sym of the specified module <M> and displays the interface definition in a human-readable form on the standard output device.
+.SH ENVIRONMENT
+.TP
+OBERON
+a colon-separated list of directories in which showdef searches for symbol files.
+If OBERON is not defined, files are only searched in the current working directory.
+Note that shell specific characters such as "~" are not supported by showdef.
+The environment variable OBERON may be set e.g. under the bash shell by
+.ti +0
+% export OBERON=.:Mylib:OberonLib
+.SH COPYRIGHT
+Copyright 1995 by Josef Templ.
+
+Transferred to the Free BSD License in 2012.
+.SH AUTHORS
+Design and implementation of showdef is due to Josef Templ.
+Comments or suggestions may be sent to Josef.Templ@gmail.com.
+
+Project ofront is hosted on Google code.
+

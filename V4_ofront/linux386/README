@@ -1,0 +1,8 @@
+Tested on 32-bit Debian Linux 2.6 and 3.2 distribution.
+Uses libc.so.6, libm.so.6, libX11.so.6.
+
+Run 'make' for a build.
+Look at the 'makefile' for the build process.
+
+It may be required to create a link for libX11.so:
+libX11.so -> /usr/lib/i386-linux-gnu/libX11.so.6

@@ -1,0 +1,289 @@
+%!PS-Adobe- minimal conforming
+%%Creator: Oberon
+%
+% J. Templ, 1990, 1991, 1992
+% J. Supcik, 1994
+%
+% m  moveto  x y -> -
+% s  String  s -> -
+% l  Line  x y w h -> -
+% x  XLine  x y dx dy -> -
+% c  scaled Circle  x y a b -> -
+% b  shaded box  x y w h col -> -
+% i  pattern image  x y w h mode  -> -
+% p  Page  n -> -
+% f  font setting  fntname -> -
+% z Bezier cubic section  x1 y1 x2 y2 x3 y3 x0 y0 -> -
+% u UseColor  r g b -> -
+
+/bdef {bind def} bind def
+
+/m {moveto} bdef
+
+/s {show} bdef
+
+/u {setrgbcolor} bdef
+
+/l {
+  /ph exch def
+  /pw exch def
+  newpath
+  moveto
+  pw 0 rlineto
+  0 ph rlineto
+  pw neg 0 rlineto
+  closepath
+  fill
+} bdef
+
+/x {
+  /dy exch def
+  /dx exch def
+  newpath
+  moveto
+  dx dy rlineto
+  1 setlinewidth
+  stroke
+} bdef
+
+/c {
+  /pb exch def
+  /pa exch def
+  newpath
+  gsave
+  translate
+  1 pb pa div scale
+  0 0 pa 0 360 arc
+  1 setlinewidth
+  stroke
+  grestore
+} bdef
+
+/shade {
+  gsave
+  col 0 eq {1 setgray} if
+  col 1 eq {0.99 setgray} if
+  col 2 eq {0.9 setgray} if
+  col 3 eq {0.65 setgray} if
+  col 4 eq {0.35 setgray} if
+  col 5 eq {0 setgray} if
+  fill
+  grestore
+} bdef
+
+/max {
+  /h1 exch def
+  /h2 exch def
+  h1 h2 lt {h2} {h1} ifelse
+} bdef
+
+/texture {
+  gsave
+  clip
+  newpath
+  col 6 eq
+    { px 20 idiv 20 mul py ph add 20 idiv 20 mul moveto
+      /maxwh pw ph max 20 add def
+      maxwh 10 idiv 1 add
+        { maxwh maxwh rlineto
+          maxwh neg dup 20 sub rmoveto
+        } repeat
+    } if
+  col 7 eq
+    { px 20 idiv 20 mul py 20 idiv 20 mul moveto
+      /maxwh pw ph max 20 add def
+      maxwh 10 idiv 1 add
+        { maxwh neg maxwh rlineto
+          maxwh 20 add maxwh neg rmoveto
+        } repeat
+    } if
+  col 8 eq
+    { px 15 idiv 15 mul py 15 idiv 15 mul moveto
+      /ph ph 25 add def
+      pw 15 idiv 1 add
+        { 0 ph rlineto
+          15 ph neg rmoveto
+        } repeat
+   } if
+  col 9 eq
+    { px 15 idiv 15 mul py 15 idiv 15 mul moveto
+      /pw pw 15 add def
+      ph 15 idiv 1 add
+       { pw 0 rlineto
+          pw neg 15 rmoveto
+        } repeat
+   } if
+  1 setlinewidth
+  stroke
+  grestore
+} bdef
+
+/b {
+  /col exch def
+  /ph exch def
+  /pw exch def
+  /py exch def
+  /px exch def
+  newpath
+  px py moveto
+  pw 0 rlineto
+  0 ph rlineto
+  pw neg 0 rlineto
+  closepath
+  col 6 lt {shade} {texture} ifelse
+} bdef
+
+/i { % pattern image follows procedure i immediately
+  /mode exch def
+  /ph exch def
+  /pw exch def
+  /py exch def
+  /px exch def
+  /picstr 256 string def
+  /nofbytes pw 7 add 8 idiv ph mul def
+  gsave
+  px py translate
+  pw mode 1 add mul ph mode 1 add mul scale
+  pw ph 1 [pw 0 0 ph 0 0]
+    {nofbytes 256 ge
+      { currentfile picstr readhexstring pop
+        /nofbytes nofbytes 256 sub def }
+      { /picstr nofbytes string def
+        currentfile picstr readhexstring pop
+        /nofbytes 0 def
+      } ifelse
+    } image
+  grestore
+} bdef
+
+/f {findfont setfont} bdef
+
+/z {newpath moveto curveto 1 setlinewidth stroke } bdef    % Bezier cubic section
+
+/p {/#copies exch def showpage restore save} bdef    % show page
+
+/GlobalBuildGlyph {
+    1 index /CharData get exch
+    2 copy known not {pop /.notdef} if get
+    dup 0 get 0
+    2 index 1 4 getinterval aload pop
+    setcachedevice
+    dup 5 2 getinterval aload pop true
+    5 4 roll /imageMaskMatrix get
+    dup 4 6 index 7 get put
+    dup 5 6 index 8 get put
+    5 4 roll 9 1 getinterval cvx
+    imagemask
+} def
+
+/GlobalBuildChar {
+    1 index /Encoding get exch get
+    1 index /BuildGlyph get exec
+} def
+
+/OberonSmallEncoding {
+    dup 128 /Adieresis put dup 129 /Odieresis put dup 130 /Udieresis put dup 131 /adieresis put
+    dup 132 /odieresis put dup 133 /udieresis put dup 134 /acircumflex put dup 135 /ecircumflex put
+    dup 136 /icircumflex put dup 137 /oicircumflex put dup 138 /uicircumflex put dup 139 /agrave put
+    dup 140 /egrave put dup 141 /igrave put dup 142 /ograve put dup 143 /ugrave put dup 144 /eacute put
+    dup 145 /edieresis put dup 146 /idieresis put dup 147 /ccedilla put dup 148 /aacute put
+    dup 149 /ntilde put dup 155 /endash put dup 159 /hyphen put dup 171 /germandbls put
+} bdef
+
+/OberonEncoding {
+  dup 32 /space put dup 33 /exclam put dup 34 /quotedbl put dup 35 /numbersign put 
+  dup 36 /dollar put dup 37 /percent put dup 38 /ampersand put dup 39 /quotesingle put dup 40 /parenleft put 
+  dup 41 /parenright put dup 42 /asterisk put dup 43 /plus put dup 44 /comma put dup 45 /minus put 
+  dup 46 /period put dup 47 /slash put dup 48 /zero put dup 49 /one put dup 50 /two put dup 51 /three put 
+  dup 52 /four put dup 53 /five put dup 54 /six put dup 55 /seven put dup 56 /eight put dup 57 /nine put 
+  dup 58 /colon put dup 59 /semicolon put dup 60 /less put dup 61 /equal put dup 62 /greater put 
+  dup 63 /question put dup 64 /at put dup 65 /A put dup 66 /B put dup 67 /C put dup 68 /D put dup 69 /E put 
+  dup 70 /F put dup 71 /G put dup 72 /H put dup 73 /I put dup 74 /J put dup 75 /K put dup 76 /L put 
+  dup 77 /M put dup 78 /N put dup 79 /O put dup 80 /P put dup 81 /Q put dup 82 /R put dup 83 /S put 
+  dup 84 /T put dup 85 /U put dup 86 /V put dup 87 /W put dup 88 /X put dup 89 /Y put dup 90 /Z put 
+  dup 91 /bracketleft put dup 92 /backslash put dup 93 /bracketright put dup 94 /arrowup put dup 95 /underscore put 
+  dup 96 /grave put dup 97 /a put dup 98 /b put dup 99 /c put dup 100 /d put dup 101 /e put dup 102 /f put 
+  dup 103 /g put dup 104 /h put dup 105 /i put dup 106 /j put dup 107 /k put dup 108 /l put dup 109 /m put 
+  dup 110 /n put dup 111 /o put dup 112 /p put dup 113 /q put dup 114 /r put dup 115 /s put dup 116 /t put 
+  dup 117 /u put dup 118 /v put dup 119 /w put dup 120 /x put dup 121 /y put dup 122 /z put dup 123 /braceleft put 
+  dup 124 /bar put dup 125 /braceright put dup 126 /tilde put dup 128 /Adieresis put dup 129 /Odieresis put 
+  dup 130 /Udieresis put dup 131 /adieresis put dup 132 /odieresis put dup 133 /udieresis put dup 134 /acircumflex put 
+  dup 135 /ecircumflex put dup 136 /icircumflex put dup 137 /oicircumflex put dup 138 /uicircumflex put 
+  dup 139 /agrave put dup 140 /egrave put dup 141 /igrave put dup 142 /ograve put dup 143 /ugrave put 
+  dup 144 /eacute put dup 145 /edieresis put dup 146 /idieresis put dup 147 /ccedilla put dup 148 /aacute put 
+  dup 149 /ntilde put dup 155 /endash put dup 159 /hyphen put dup 171 /germandbls put
+} bdef
+
+/DefineMapFont {
+    dup FontMapDict exch get
+    aload pop exch
+    findfont
+    dup length dict begin
+        {1 index /FID ne {def} {pop pop} ifelse} forall
+        FontMatrix dup length array copy
+        dup dup 0 get 3 index mul 0 exch put
+        dup dup 3 get 3 index mul 3 exch put
+        /FontMatrix exch def pop
+        Encoding dup length array copy OberonSmallEncoding /Encoding exch def
+        currentdict
+    end
+    definefont pop
+} bdef
+
+/DefineSMapFont { % Syntax encoding
+    dup FontMapDict exch get
+    aload pop exch
+    findfont
+    dup length dict begin
+        {1 index /FID ne {def} {pop pop} ifelse} forall
+        FontMatrix dup length array copy
+        dup dup 0 get 3 index mul 0 exch put
+        dup dup 3 get 3 index mul 3 exch put
+        /FontMatrix exch def pop
+        Encoding dup length array copy OberonSmallEncoding
+  	  dup 45 /endash put dup 95 /minus put /Encoding exch def
+        currentdict
+    end
+    definefont pop
+} bdef
+
+/FontMapDict 64 dict def
+FontMapDict begin
+    /Syntax8.Scn.Fnt [/Helvetica 30] def  /Syntax8i.Scn.Fnt [/Helvetica-Oblique 30] def
+    /Syntax8b.Scn.Fnt [/Helvetica-Bold 30] def  /Syntax8m.Scn.Fnt [/Helvetica-Bold 30] def
+    /Syntax9m.Scn.Fnt [/Helvetica-Bold 33] def  /Syntax10.Scn.Fnt  [/Helvetica 37] def
+    /Syntax10i.Scn.Fnt [/Helvetica-Oblique 37] def  /Syntax10b.Scn.Fnt [/Helvetica-Bold 37] def
+    /Syntax10m.Scn.Fnt [/Helvetica-Bold 37] def  /Syntax10w.Scn.Fnt [/Helvetica 37] def
+    /Syntax12.Scn.Fnt [/Helvetica 44] def  /Syntax12i.Scn.Fnt [/Helvetica-Oblique 44] def
+    /Syntax12b.Scn.Fnt [/Helvetica-Bold 44] def  /Syntax12m.Scn.Fnt [/Helvetica-Bold 44] def
+    /Syntax14.Scn.Fnt [/Helvetica 50] def  /Syntax14i.Scn.Fnt [/Helvetica-Oblique 50] def
+    /Syntax14b.Scn.Fnt [/Helvetica-Bold 50] def  /Syntax14m.Scn.Fnt [/Helvetica-Bold 50] def
+    /Syntax16.Scn.Fnt [/Helvetica 59] def  /Syntax16i.Scn.Fnt [/Helvetica-Oblique 59] def
+    /Syntax16b.Scn.Fnt [/Helvetica-Bold 59] def  /Syntax16m.Scn.Fnt [/Helvetica-Bold 59] def
+    /Syntax20.Scn.Fnt [/Helvetica 74] def  /Syntax20i.Scn.Fnt [/Helvetica-Oblique 74] def
+    /Syntax20b.Scn.Fnt [/Helvetica-Bold 74] def  /Syntax20m.Scn.Fnt [/Helvetica-Bold 74] def
+    /Syntax24.Scn.Fnt [/Helvetica 88] def  /Syntax24i.Scn.Fnt [/Helvetica-Oblique 88] def
+    /Syntax24b.Scn.Fnt [/Helvetica-Bold 88] def  /Syntax24m.Scn.Fnt [/Helvetica-Bold 88] def
+    /Gacha10l [/Courier 30] def  /Courier8.Scn.Fnt [/Courier 30] def
+    /Courier10.Scn.Fnt [/Courier 37] def  /Courier12.Scn.Fnt [/Courier-Bold 44] def
+    /Times8.Scn.Fnt [/Times-Roman 32] def  /Times8i.Scn.Fnt [/Times-Italic 32] def
+    /Times8b.Scn.Fnt [/Times-Bold 32] def  /Times10.Scn.Fnt [/Times-Roman 40] def
+    /Times10i.Scn.Fnt [/Times-Italic 40] def  /Times10b.Scn.Fnt [/Times-Bold 40] def
+    /Times12.Scn.Fnt [/Times-Roman 48] def  /Times12i.Scn.Fnt [/Times-Italic 48] def
+    /Times12b.Scn.Fnt [/Times-Bold 48] def  /Times14.Scn.Fnt [/Times-Roman 56] def
+    /Times14i.Scn.Fnt [/Times-Italic 56] def  /Times14b.Scn.Fnt [/Times-Bold 56] def
+    /Times16.Scn.Fnt [/Times-Roman 64] def  /Times16i.Scn.Fnt [/Times-Italic 64] def
+    /Times16b.Scn.Fnt [/Times-Bold 64] def  /Times20.Scn.Fnt [/Times-Roman 80] def
+    /Times20i.Scn.Fnt [/Times-Italic 80] def  /Times20b.Scn.Fnt[ /Times-Bold 80] def
+    /Times24.Scn.Fnt [/Times-Roman 96] def  /Times24i.Scn.Fnt [/Times-Italic 96] def
+    /Times24b.Scn.Fnt [/Times-Bold 96] def
+end
+
+/OberonInit {
+  .24 .24 scale	% .24 .22       for US letter
+  % 152 18 translate    % if you want Pluto-like printer origin...
+  (Syntax10.Scn.Fnt) f
+  0 setgray
+  save
+} bdef
+
