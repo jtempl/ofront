@@ -1,3 +1,11 @@
+ofront is an Oberon-2 to C translator written in Oberon-2. 
+It supports both ANSI and K&R style C and supports cross 
+translation to arbitrary target platforms. ofront includes 
+a runtime system including an automatic garbage collector 
+for Linux, the Oberon V4 system, and a set of command-line tools.
+
+Download ofront 1.3 for Linux/i386 from http://www.software-templ.com/shareware.html.
+
 The directory structure of the project ofront is as follows:
 
 fonts
