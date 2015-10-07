@@ -2,6 +2,7 @@ MODULE OfrontOPM;	(* RC 6.3.89 / 28.6.89, J.Templ 10.7.89 / 22.7.96 *)
 (* constants needed for C code generation 
 
 	31.1.2007 jt synchronized with BlackBox version, in particular PromoteIntConstToLInt added
+	2015-010-07 jt support for ascii texts with CRLF line endings added in Get
 *)
 
 	IMPORT SYSTEM, Texts, TextFrames, Oberon, Files, Viewers;
@@ -242,6 +243,8 @@ MODULE OfrontOPM;	(* RC 6.3.89 / 28.6.89, J.Templ 10.7.89 / 22.7.96 *)
 			ELSIF curpos MOD 256 # 255 THEN INC(curpos)
 				(* at 255 means:  >= 255 *)
 			END
+		ELSIF ch = 0DX THEN
+			curpos := Texts.Pos(inR) (* supports CR LF to CR mapping *)
 		ELSE
 			INC(curpos)
 		END ;
