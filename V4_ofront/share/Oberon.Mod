@@ -307,7 +307,7 @@ MODULE Oberon; (*JG 6.9.90 / 23.9.93*)
 	END Call;
 
 	PROCEDURE -system(cmd: ARRAY OF CHAR): LONGINT
-		"RETURN system(cmd)";
+		"(LONGINT)system(cmd)";
 
 	PROCEDURE ExecShell*(cmd: ARRAY OF CHAR; VAR status: LONGINT; VAR out: Texts.Buffer);
 		VAR i, bufsize, stdin, stdout, stderr, fd, res: LONGINT;
