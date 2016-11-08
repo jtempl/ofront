@@ -438,7 +438,6 @@ MODULE System; (*JG 25.4.90 / NW 22.4.90, JT 21.01.93*)
 			T: Texts.Text; R: Texts.Reader; V: Viewers.Viewer; B: Texts.Buffer;
 			i, beg, end, time, status: LONGINT;
 			cmd: ARRAY 4096 OF CHAR;
-			buf: ARRAY 32000 OF CHAR;
 			X, Y: INTEGER;
 			ch: CHAR;
 	BEGIN
