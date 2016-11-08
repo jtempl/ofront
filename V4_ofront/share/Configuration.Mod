@@ -4,7 +4,7 @@ MODULE Configuration;	(* jt 5.4.95 *)
 	with a command-level pin point *)
 
 	IMPORT
-		Viewers, Oberon, TextFrames, MenuViewers, Display, Texts, FKeys, System, Out, Ofront, Browser;
+		Viewers, Oberon, TextFrames, MenuViewers, Display, Texts, FKeys, System, Out, Ofront, Browser, Modules;
 
 	CONST
 		StandardMenu = "System.Close System.Copy System.Grow Edit.Search Edit.Store ";
@@ -42,6 +42,7 @@ MODULE Configuration;	(* jt 5.4.95 *)
 
 	PROCEDURE Init*;
 		VAR logV, toolV: Viewers.Viewer; X, Y: INTEGER; logger: Oberon.Task;
+			startup: Modules.Module;
 	BEGIN
 		Oberon.OpenDisplay(Display.Width DIV 8 * 5, Display.Width DIV 8 * 3, Display.Height);
 		Oberon.FocusViewer := Viewers.This(0, 0);
@@ -63,6 +64,7 @@ MODULE Configuration;	(* jt 5.4.95 *)
 		FKeys.Set(12, FKeys.InternationalKey);
 		FKeys.Set(10, FKeys.InternationalKey);
 		Out.String("Ofront 1.4, Oberon V4"); Out.Ln;
+		startup := Modules.ThisMod("OberonStartup");
 		Oberon.Loop
 	END Init;
 
