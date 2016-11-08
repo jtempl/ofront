@@ -93,6 +93,9 @@ a colon-separated list of directories in which the dynamic linker searches for
 shared object libraries. The lookup strategies between different Unix versions differ slightly.
 The name of the environment variable to be used for library lookup is also platform specific.
 SunOS and Linux use LD_LIBRARY_PATH, AIX uses LIBPATH, and HP-UX uses SHLIB_PATH.
+.TP
+OberonStartup
+This optional module is loaded upon startup of oberon in order to allow for automating user specific settings. It requires dynamic module loading being available, which is for example the case under Linux. The distribution does not contain binaries for this module but provides a template module in source form.
 .SH FILES
 .TP
 temporary files
