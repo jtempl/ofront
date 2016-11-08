@@ -25,9 +25,6 @@ MODULE System; (*JG 25.4.90 / NW 22.4.90, JT 21.01.93*)
 	PROCEDURE -setIntd(v: BOOLEAN)
 		"SYSTEM_interrupted = v";
 
-	PROCEDURE -system(cmd: ARRAY OF CHAR)
-		"system(cmd)";
-
 	PROCEDURE -FinalizeAll()
 		"SYSTEM_FINALL()";
 
@@ -437,23 +434,22 @@ MODULE System; (*JG 25.4.90 / NW 22.4.90, JT 21.01.93*)
 	END Quit;
 
 	PROCEDURE Execute*;
-		VAR par: Oberon.ParList;
-			t: Texts.Text; R: Texts.Reader; V: Viewers.Viewer;
-			i, bufsize, beg, end, time, stdin, stdout, stderr, fd, res: LONGINT;
-			boldFnt, italicFnt: Fonts.Font;
+		VAR
+			T: Texts.Text; R: Texts.Reader; V: Viewers.Viewer; B: Texts.Buffer;
+			i, beg, end, time, status: LONGINT;
 			cmd: ARRAY 4096 OF CHAR;
 			buf: ARRAY 32000 OF CHAR;
 			X, Y: INTEGER;
 			ch: CHAR;
-	BEGIN par := Oberon.Par;
-		Oberon.AllocateSystemViewer(par.vwr.X, X, Y);
-		Texts.OpenReader(R, par.text, par.pos);
+	BEGIN
+		Oberon.AllocateSystemViewer(Oberon.Par.vwr.X, X, Y);
+		Texts.OpenReader(R, Oberon.Par.text, Oberon.Par.pos);
 		i := 0; cmd := ""; Texts.Read(R, ch);
 		WHILE ch = " " DO Texts.Read(R, ch) END ;
 		WHILE (ch >= " ") & (ch # "^") DO cmd[i] := ch; INC(i); Texts.Read(R, ch) END ;
 		IF (i = 0) OR (ch = "^") THEN
-			Oberon.GetSelection(t, beg, end, time);
-			IF time >= 0 THEN Texts.OpenReader(R, t, beg);
+			Oberon.GetSelection(T, beg, end, time);
+			IF time >= 0 THEN Texts.OpenReader(R, T, beg);
 				Texts.Read(R, ch);
 				WHILE Texts.Pos(R) <= end DO
 					IF ch = 0DX THEN ch := " " END ;
@@ -462,56 +458,16 @@ MODULE System; (*JG 25.4.90 / NW 22.4.90, JT 21.01.93*)
 			END
 		END ;
 		cmd[i] := 0X;
-		stdin := Unix.Dup(Unix.stdin);
-		stdout := Unix.Dup(Unix.stdout);
-		stderr := Unix.Dup(Unix.stderr);
-		res := Unix.Close(Unix.stdin);
-		res := Unix.Close(Unix.stdout);
-		res := Unix.Close(Unix.stderr);
-		fd := Unix.Open("/dev/null", Unix.rdwr, {0..31});
-		fd := Unix.Open("/tmp/System.Execute", Unix.rdwr + Unix.creat + Unix.trunc, {0..31});
-		res := Unix.Unlink("/tmp/System.Execute");
-		fd := Unix.Dup(fd);
-		system(cmd);
-		boldFnt := Fonts.This("Syntax10b.Scn.Fnt");
-		italicFnt := Fonts.This("Syntax10i.Scn.Fnt");
-		res := Unix.Lseek(Unix.stdout, 0, 0);
-		bufsize := Unix.ReadBlk(Unix.stdout, buf);
-		IF bufsize > 0 THEN t := TextFrames.Text("");
+		Oberon.ExecShell(cmd, status, B);
+		IF B.len > 0 THEN
+			T := TextFrames.Text("");
+			Texts.Append(T, B);
 			V := MenuViewers.New(
 				TextFrames.NewMenuEx("System.Execute", "System.Menu.Text", StandardMenu),
-				TextFrames.NewText(t, 0),
+				TextFrames.NewText(T, 0),
 				TextFrames.menuH,
 				X, Y);
-			REPEAT i := 0;
-				WHILE i < bufsize DO ch := buf[i];
-					IF ch = 0AX THEN ch := 0DX END ;	(* LF -> CR *)
-					IF (i < bufsize-2) & (buf[i+1] = 08X) THEN	(* -almost- correct (consider buf limit...) *)
-						Texts.SetFont(W, boldFnt);
-						IF ch # "_" THEN Texts.SetFont(W, boldFnt); Texts.Write(W, ch)
-						ELSE Texts.SetFont(W, boldFnt); Texts.Write(W, buf[i+2])
-						END ;
-						Texts.SetFont(W, Fonts.Default);
-						REPEAT INC(i, 2) UNTIL (i+1 >= bufsize) OR (buf[i+1] # 08X);
-					ELSE Texts.Write(W, ch)
-					END ;
-					INC(i)
-				END ;
-				bufsize := Unix.ReadBlk(Unix.stdout, buf)
-			UNTIL bufsize = 0;
-			Texts.Append(t, W.buf);
-			res := Unix.Ftruncate(Unix.stdout, 0);
-			res := Unix.Lseek(Unix.stdout, 0, 0)
-		END ;
-		res := Unix.Close(Unix.stdin);
-		res := Unix.Close(Unix.stdout);
-		res := Unix.Close(Unix.stderr);
-		fd := Unix.Dup(stdin);
-		fd := Unix.Dup(stdout);
-		fd := Unix.Dup(stderr);
-		res := Unix.Close(stdin);
-		res := Unix.Close(stdout);
-		res := Unix.Close(stderr)
+		END
 	END Execute;
 
 	PROCEDURE Scan(VAR pos: INTEGER; VAR O, path: ARRAY OF CHAR);
