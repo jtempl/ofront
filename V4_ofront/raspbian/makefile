@@ -205,9 +205,9 @@ tar:
 	$(OCAT) Reals.Mod > $(TARDIR)/$(V4_ofront)/Reals.Mod
 	$(OCAT) Unix.Mod > $(TARDIR)/$(V4_ofront)/Unix.Mod
 	$(OCAT) WiringPi.Mod > $(TARDIR)/$(V4_ofront)/WiringPi.Mod
-	$(OCAT) My.Tool > $(TARDIR)/$(V4_ofront)/My.Tool
-	$(OCAT) TestPi.Mod > $(TARDIR)/$(V4_ofront)/TestPi.Mod
-	$(OCAT) TestPiMain.Mod > $(TARDIR)/$(V4_ofront)/TestPiMain.Mod
+	cp My.Tool $(TARDIR)/$(V4_ofront)/My.Tool
+	cp TestPi.Mod $(TARDIR)/$(V4_ofront)/TestPi.Mod
+	cp TestPiMain.Mod $(TARDIR)/$(V4_ofront)/TestPiMain.Mod
 	cp Syntax10.Scn.Fnt $(TARDIR)/$(V4_ofront)/Syntax10.Scn.Fnt
 	chmod -R a+x $(TARDIR)/bin $(TARDIR)/lib $(TARDIR)/oberon.bash
 	chmod -R a-w $(TARDIR)/*/*
