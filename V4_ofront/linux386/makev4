@@ -1,0 +1,85 @@
+# makefile for V4, fonts, man1
+#
+
+RELEASE = 1.4
+outputDIR = /tmp
+
+v4DIR = V4
+v4PATH = $(outputDIR)/$(v4DIR)
+v4TAR = $(outputDIR)/v4-$(RELEASE)-share.tar
+
+fontsDIR = fonts
+fontsPATH = $(outputDIR)/$(fontsDIR)
+fontsTAR = $(outputDIR)/fonts.tar
+
+manDIR = man1
+manPATH = $(outputDIR)/$(manDIR)
+manTAR = $(outputDIR)/man1.tar
+
+ZIP = gzip -f
+
+all:    clean v4 man fonts rasall
+
+clean:
+	rm -fr $(v4PATH)  $(manPATH)  $(fontsPATH)
+	rm -f  $(v4TAR) $(manTAR) $(fontsTAR)
+
+rasall:
+	rm -f  /tmp/ofront-1.4_raspbian_all.tar.gz
+	rm -rf /tmp/rasall
+	mkdir  /tmp/rasall
+	cp /tmp/ofront-1.4_raspbian-Pi3.tar.gz /tmp/rasall
+	gunzip /tmp/rasall/ofront-1.4_raspbian-Pi3.tar.gz
+	cd /tmp/rasall; tar xf /tmp/rasall/ofront-1.4_raspbian-Pi3.tar
+	cp -R /tmp/man1  /tmp/rasall/ofront_1.4/
+	cp -R /tmp/fonts /tmp/rasall/ofront_1.4/
+	cp -R /tmp/V4    /tmp/rasall/ofront_1.4/
+	cd /tmp/rasall; tar cf ofront-1.4_raspbian_all.tar ofront_1.4
+	$(ZIP) /tmp/rasall/ofront-1.4_raspbian_all.tar
+	mv /tmp/rasall/ofront-1.4_raspbian_all.tar.gz /tmp
+	echo "created file /tmp/ofront-1.4_raspbian_all.tar.gz"
+
+v4:
+	rm -fr $(v4PATH) $(v4TAR)
+	mkdir $(v4PATH)
+	cp ../../V4/* $(v4PATH)
+	cp ../../V4_ofront/share/* $(v4PATH)
+	rm -f $(v4PATH)/*.Bak
+	rm -f $(v4PATH)/.tmp*
+	rm -f $(v4PATH)/*~
+	chmod a+rx $(v4PATH)
+	chmod a+r $(v4PATH)/*
+	chmod a-w $(v4PATH)/*
+	cd $(v4PATH)/..; tar cf $(v4TAR) $(v4DIR)
+	$(ZIP) $(v4TAR)
+	echo "created file" $(v4TAR).gz
+
+man:
+	rm -fr $(manPATH) $(manTAR)
+	mkdir $(manPATH)
+	cp ../../man1/* $(manPATH)
+	rm -f $(manPATH)/*.Bak
+	rm -f $(manPATH)/.tmp*
+	rm -f $(manPATH)/*~
+	chmod a+rx $(manPATH)
+	chmod a+r $(manPATH)/*
+	chmod a-w $(manPATH)/*
+	cd $(manPATH)/..; tar cf $(manTAR) $(manDIR)
+	$(ZIP) $(manTAR)
+	echo "created file" $(manTAR).gz
+	
+
+fonts:
+	rm -fr $(fontsPATH) $(fontsTAR)
+	mkdir $(fontsPATH)
+	cp ../../fonts/* $(fontsPATH)
+	rm -f $(fontsPATH)/*.Bak
+	rm -f $(fontsPATH)/.tmp*
+	rm -f $(fontsPATH)/*~
+	chmod a+rx $(fontsPATH)
+	chmod a+r $(fontsPATH)/*
+	chmod a-w $(fontsPATH)/*
+	cd $(fontsPATH)/..; tar cf $(fontsTAR) $(fontsDIR)
+	$(ZIP) $(fontsTAR)
+	echo "created file" $(fontsTAR).gz
+
