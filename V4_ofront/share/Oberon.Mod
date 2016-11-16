@@ -327,7 +327,6 @@ MODULE Oberon; (*JG 6.9.90 / 23.9.93*)
 		res := Unix.Unlink("/tmp/System.Execute");
 		fd := Unix.Dup(fd); (* temporary stderr *)
 		status := system(cmd);
-		Texts.OpenWriter(W);
 		boldFnt := Fonts.This("Syntax10b.Scn.Fnt");
 		italicFnt := Fonts.This("Syntax10i.Scn.Fnt");
 		res := Unix.Lseek(Unix.stdout, 0, 0);
