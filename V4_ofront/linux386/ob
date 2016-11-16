@@ -1,7 +1,8 @@
 #!/bin/bash
 
 export OFRONT_HOME=~/ofront_1.4
-export OBERON=.:../share:../../V4:../../fonts
+export OBERON=.:../share:../../V4:../../fonts:../../man1
 export LD_LIBRARY_PATH=.:$OFRONT_HOME/lib
+export PATH=.:$OFRONT_HOME/bin:$OFRONT_HOME:$PATH
 
 $OFRONT_HOME/bin/oberon $* &
