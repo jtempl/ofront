@@ -74,10 +74,10 @@ MODULE System; (*JG 25.4.90 / NW 22.4.90, JT 21.01.93*)
 						END
 					END ;
 					resetHalt()
+			| 7, 10:
+					Out.String("BUS ERROR")
 			| 8:
 					Out.String("ARITHMETIC EXCEPTION")
-			| 10:
-					Out.String("BUS ERROR")
 			| 11:
 					(* SIGSEGV *)
 					(* first check if caused by a frame handler of an unloaded module; this would lead to recursion in Out. *)
@@ -528,6 +528,7 @@ BEGIN
 	Unix.SigSetHandler(2, Trap);	(* keyboard interrupt *)
 	Unix.SigSetHandler(3, Trap);	(* quit *)
 	Unix.SigSetHandler(4, Trap);	(* illegal instruction *)
+	Unix.SigSetHandler(7, Trap);	(* bus error *)
 	Unix.SigSetHandler(8, Trap);	(* arithmetic error *)
 	Unix.SigSetHandler(10, Trap);	(* bus error *)
 	Unix.SigSetHandler(11, Trap);	(* segmentation violation *)
