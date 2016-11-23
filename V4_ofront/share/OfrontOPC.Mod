@@ -39,7 +39,7 @@ MODULE OfrontOPC;	(* copyright (c) J. Templ 12.7.95 / 3.7.96 *)
 		DefinedInBdy = 3+OPM.BodyFile; (* named type has been defined in body file *)
 
 
-		HeaderMsg = " Ofront 1.2 -";
+		HeaderMsg = " Ofront 1.4 -";
 		BasicIncludeFile = "SYSTEM";
 		Static = "static ";
 		Export = "export ";	(* particularily introduced for VC++ declspec() *)
@@ -1150,7 +1150,7 @@ MODULE OfrontOPC;	(* copyright (c) J. Templ 12.7.95 / 3.7.96 *)
 		IF obj^.adr = 1 THEN	(* WITH-variable *)
 			IF obj^.typ^.comp = Record THEN Ident(obj); OPM.WriteString("__")
 			ELSE (* cast with guard pointer type *)
-				OPM.WriteString("(("); Ident(obj^.typ^.strobj); OPM.Write(")"); Ident(obj); OPM.Write(")")
+				OPM.WriteString("(*("); Ident(obj^.typ^.strobj); OPM.WriteString("*)&"); Ident(obj); OPM.Write(")")
 			END
 		ELSIF (level # OPM.level) & (level > 0) THEN (* intermediate var *)
 			comp := obj^.typ^.comp;
@@ -1207,7 +1207,8 @@ MODULE OfrontOPC;	(* copyright (c) J. Templ 12.7.95 / 3.7.96 *)
 					ch := CHR (caseVal);
 					IF (ch >= " ") & (ch <= "~") THEN
 						OPM.Write(SingleQuote);
-						IF (ch = "\") OR (ch = "?") OR (ch = SingleQuote) OR (ch = Quotes) THEN OPM.Write("\"); OPM.Write(ch);
+						IF (ch = "\") OR (ch = "?") OR (ch = SingleQuote) OR (ch = Quotes) THEN
+							OPM.Write("\"); OPM.Write(ch);
 						ELSE OPM.Write(ch);
 						END;
 						OPM.Write(SingleQuote);
@@ -1299,7 +1300,6 @@ MODULE OfrontOPC;	(* copyright (c) J. Templ 12.7.95 / 3.7.96 *)
 					OPM.WriteString(NilConst);
 		END;
 	END Constant;
-
 
 	PROCEDURE InitKeywords;
 		VAR n, i: SHORTINT;
