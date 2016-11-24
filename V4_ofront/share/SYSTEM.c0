@@ -202,5 +202,9 @@ SYSTEM_PTR SYSTEM_NEWARR(typ, elemsz, elemalgn, nofdim, nofdyn, va_alist)
 	return x;
 }
 
+static void SYSTEM_MarkStack(void);
+
+SYSTEM_CALL_MARKSTACK /* macro defined in SYSTEM.h */
+
 /* ----------- end of SYSTEM.co ------------- */
 
