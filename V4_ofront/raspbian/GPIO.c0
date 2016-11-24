@@ -1,0 +1,38 @@
+#include <stdio.h>
+#include <sys/mman.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <fcntl.h>
+
+/* cf. Broadcom BCM2835 ARM Peripherals */
+#define GPIO_BASE	0x0	// address in physical map that we want this memory block to expose
+#define GPIO_SIZE	0xB4
+
+static void* gpioMem;
+
+static int mapGpiomem(void) {
+	int mem_fd;	// file descriptor to physical gpio memory virtual file '/dev/gpiomem'
+	if (gpioMem) { // already open
+		return 0;
+	};
+	if ((mem_fd = open("/dev/gpiomem", O_RDWR | O_SYNC) ) < 0) {
+		printf("Failed to open /dev/gpiomem, check permissions.\n");
+		return -1;
+	}
+	gpioMem = mmap(NULL, GPIO_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, mem_fd, GPIO_BASE);
+	close(mem_fd);
+	if (gpioMem == MAP_FAILED) {
+		perror("mmap");
+		gpioMem = NULL;
+		return -1;
+	}
+	return 0;
+}
+
+static void unmapGpiomem(void) {
+	if (gpioMem) {
+		munmap(gpioMem, GPIO_SIZE);
+		gpioMem = NULL;
+	}
+}
