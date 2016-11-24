@@ -6,10 +6,6 @@ MODULE Configuration;	(* jt 5.4.95 *)
 	IMPORT
 		Viewers, Oberon, TextFrames, MenuViewers, Display, Texts, FKeys, System, Out, Ofront, Browser, Modules;
 
-	CONST
-		StandardMenu = "System.Close System.Copy System.Grow Edit.Search Edit.Store ";
-		LogMenu = "System.Close System.Grow Edit.Locate Edit.Store ";
-
 	VAR
 		pinPos: LONGINT;
 
@@ -48,14 +44,14 @@ MODULE Configuration;	(* jt 5.4.95 *)
 		Oberon.FocusViewer := Viewers.This(0, 0);
 		Oberon.AllocateSystemViewer(0, X, Y);
 		logV := MenuViewers.New(
-			TextFrames.NewMenuEx("System.Log", "Log.Menu.Text", LogMenu),
+			TextFrames.NewMenu("System.Log", "^Log.Menu.Text"),
 			TextFrames.NewText(Oberon.Log, 0),
 			TextFrames.menuH,
 			X, Y);
 		logV.dsc.next.handle := HandleLog;
 		Oberon.AllocateSystemViewer(0, X, Y);
 		toolV := MenuViewers.New(
-			TextFrames.NewMenuEx("System.Tool", "System.Menu.Text", StandardMenu),
+			TextFrames.NewMenu("System.Tool", "^System.Menu.Text"),
 			TextFrames.NewText(TextFrames.Text("System.Tool"), 0),
 			TextFrames.menuH,
 			X, Y + 50) ;
