@@ -31,15 +31,75 @@ MODULE System; (*JG 25.4.90 / NW 22.4.90, JT 21.01.93*)
 	PROCEDURE -Locked(): BOOLEAN
 		"(SYSTEM_lock > 0)";
 
-	PROCEDURE Trap*(sig, siginfo, sigctx: LONGINT);
+	PROCEDURE Trap0(sig, siginfo, sigctx: LONGINT); (* low level trap handler *)
 		VAR addr: LONGINT;
 	BEGIN
 		IF Locked() THEN
 			CASE sig OF
+			| 2, 18: (* no change *)
+			| 3, 4, 7, 8, 10, 11, 13: Console.String("received a signal while in critical section (GC or NEW)"); 
+			ELSE RETURN
+			END
+		END ;
+		IF trapLevel = 0 THEN
+			trapLevel := 1;
+			CASE sig OF
+			| 2:
+					(* interrupt from keyboard *)
+					Console.String("INTERRUPT")
+			| 3:
+					(* quit from keyboard *)
+					FinalizeAll(); Unix.Exit(0)
+			| 4:
+					(* illegal instruction *)
+					CASE halt() OF
+					|   0: (* silent halt *) resetHalt(); trapLevel := 0; Kernel.siglongjmp(Kernel.trapEnv, 1)
+					| -1: Console.String("ASSERT("); Console.Int(assert(), 1); Console.String(") FAILED")
+					| -2: Console.String("INDEX OUT OF RANGE")
+					| -3: Console.String("FUNCTION WITHOUT RETURN")
+					| -4: Console.String("INVALID CASE")
+					| -5: Console.String("TYPE GUARD FAILED")
+					| -6: Console.String("IMPLICIT TYPE GUARD FAILED")
+					| -7: Console.String("WITH GUARD FAILED")
+					| -8: Console.String("VALUE OUT OF RANGE")
+					| -9: setIntd(FALSE); Console.String("DELAYED INTERRUPT")
+					ELSE
+						IF (halt() > 0) & (halt() < 256) THEN Console.String("HALT("); Console.Int(halt(), 1); Console.Char(")")
+						ELSE Console.String("ILLEGAL INSTRUCTION")
+						END
+					END ;
+					resetHalt()
+			| 7, 10:
+					Console.String("BUS ERROR")
+			| 8:
+					Console.String("ARITHMETIC EXCEPTION")
+			| 11:
+					(* SIGSEGV *)
+					Console.String("SEGMENTATION VIOLATION")
+			| 13: 
+					(* broken pipe *)
+					Console.String("UNCONNECTED PIPE")
+			| 18:
+					(* remove zombies *)
+					(* code := Unix.Wait(code); TODO unclear *) RETURN
+			ELSE
+					Console.String("SIGNAL "); Console.Int(sig, 0)
+			END
+		ELSE
+			Console.String("received a signal while handing a signal: sig="); Console.Int(sig, 0)
+		END ;
+		Console.Ln;
+		Unix.Exit(0)
+	END Trap0;
+
+	PROCEDURE Trap*(sig, siginfo, sigctx: LONGINT);
+		VAR addr: LONGINT;
+	BEGIN
+		IF ~Oberon.LoopStarted THEN Trap0(sig, siginfo, sigctx) END;
+		IF Locked() THEN
+			CASE sig OF
 			| 2, 13, 18: (* no change *)
-			| 3, 4, 8, 10, 11: Console.String("received a signal while in critical section (GC or NEW): sig="); 
-				Console.Int(sig, 1); Console.String("; terminated"); Console.Ln;
-				Unix.Exit(0)
+			| 3, 4, 7, 8, 10, 11: Trap0(sig, siginfo, sigctx)
 			ELSE RETURN (* ignore *)
 			END
 		END ;
@@ -128,7 +188,7 @@ MODULE System; (*JG 25.4.90 / NW 22.4.90, JT 21.01.93*)
         IF S.class IN {Texts.Name, Texts.String} THEN
             Oberon.AllocateSystemViewer(par.vwr.X, X, Y);
 		    V := MenuViewers.New(
-              TextFrames.NewMenuEx(S.s, "System.Menu.Text", StandardMenu),
+              TextFrames.NewMenu(S.s, "^System.Menu.Text"),
               TextFrames.NewText(TextFrames.Text(S.s), 0),
               TextFrames.menuH,
               X, Y)
@@ -140,7 +200,7 @@ MODULE System; (*JG 25.4.90 / NW 22.4.90, JT 21.01.93*)
 	BEGIN
         Oberon.AllocateSystemViewer(Oberon.Par.vwr.X, X, Y);
         logV := MenuViewers.New(
-          TextFrames.NewMenuEx("System.Log", "Log.Menu.Text", LogMenu),
+          TextFrames.NewMenu("System.Log", "^Log.Menu.Text"),
           TextFrames.NewText(Oberon.Log, Max(0, Oberon.Log.len - 200)),
           TextFrames.menuH,
           X, Y)
@@ -302,7 +362,7 @@ MODULE System; (*JG 25.4.90 / NW 22.4.90, JT 21.01.93*)
         T := TextFrames.Text("");
         Oberon.AllocateSystemViewer(Oberon.Par.vwr.X, X, Y);
         V := MenuViewers.New(
-          TextFrames.NewMenuEx("System.ShowModules", "System.Menu.Text", StandardMenu),
+          TextFrames.NewMenu("System.ShowModules", "^System.Menu.Text"),
           TextFrames.NewText(T, 0),
           TextFrames.menuH,
           X, Y);
@@ -329,7 +389,7 @@ MODULE System; (*JG 25.4.90 / NW 22.4.90, JT 21.01.93*)
 				Oberon.AllocateSystemViewer(Oberon.Par.vwr.X, X, Y);
 				T := TextFrames.Text("");
 				V := MenuViewers.New(
-					TextFrames.NewMenuEx("System.ShowCommands", "System.Menu.Text", StandardMenu),
+					TextFrames.NewMenu("System.ShowCommands", "^System.Menu.Text"),
 					TextFrames.NewText(T, 0),
 					TextFrames.menuH,
 					X, Y);
@@ -462,7 +522,7 @@ MODULE System; (*JG 25.4.90 / NW 22.4.90, JT 21.01.93*)
 			T := TextFrames.Text("");
 			Texts.Append(T, B);
 			V := MenuViewers.New(
-				TextFrames.NewMenuEx("System.Execute", "System.Menu.Text", StandardMenu),
+				TextFrames.NewMenu("System.Execute", "^System.Menu.Text"),
 				TextFrames.NewText(T, 0),
 				TextFrames.menuH,
 				X, Y);

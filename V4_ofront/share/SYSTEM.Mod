@@ -105,6 +105,7 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 	PROCEDURE -Lock()	"Lock";
 	PROCEDURE -Unlock()	"Unlock";
 	PROCEDURE -Mainfrm(): LONGINT	"SYSTEM_mainfrm";
+	PROCEDURE -CallMarkStack()	"SYSTEM_callMarkStack()";
 
 	PROCEDURE REGMOD*(VAR name: ModuleName; enumPtrs: EnumProc; body, imps: LONGINT): SYSTEM.PTR;
 		VAR m: Module;
@@ -439,39 +440,36 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 		END
 	END FINALL;
 
-	PROCEDURE MarkStack(n: LONGINT; VAR cand: ARRAY OF LONGINT);
+	PROCEDURE MarkStack0(sp: LONGINT);
 		VAR
-			frame: SYSTEM.PTR;
 			inc, nofcand: LONGINT;
-			sp, p, stack0, ptr: LONGINT;
+			p, stack0, ptr: LONGINT;
 			align: RECORD ch: CHAR; p: SYSTEM.PTR END ;
+			cand: ARRAY 10000 OF LONGINT;
 	BEGIN
-		IF n > 0 THEN MarkStack(n-1, cand);	(* flush register windows by means of recursive calls *)
-			IF n > 100 THEN RETURN END 	(* prevent tail recursion optimization *)
-		END ;
-		IF n = 0 THEN 
-			nofcand := 0; sp := SYSTEM.ADR(frame);
-			stack0 := Mainfrm();
-			(* check for minimum alignment of pointers *)
-			inc := SYSTEM.ADR(align.p) - SYSTEM.ADR(align);
-			IF sp > stack0 THEN inc := -inc END ;
-			WHILE sp # stack0 DO
-				SYSTEM.GET(sp, p);
-				IF (p > heap) & (p < heapend) THEN
-					IF nofcand = LEN(cand) THEN HeapSort(nofcand, cand); MarkCandidates(nofcand, cand); nofcand := 0 END ;
-					cand[nofcand] := p; INC(nofcand)
-				END ;
-				INC(sp, inc)
+		nofcand := 0; stack0 := Mainfrm();
+		(* check for minimum alignment of pointers *)
+		inc := SYSTEM.ADR(align.p) - SYSTEM.ADR(align);
+		IF sp > stack0 THEN inc := -inc END ;
+		WHILE sp # stack0 DO
+			SYSTEM.GET(sp, p);
+			IF (p > heap) & (p < heapend) THEN
+				IF nofcand = LEN(cand) THEN HeapSort(nofcand, cand); MarkCandidates(nofcand, cand); nofcand := 0 END ;
+				cand[nofcand] := p; INC(nofcand)
 			END ;
-			IF nofcand > 0 THEN HeapSort(nofcand, cand); MarkCandidates(nofcand, cand) END
-		END
+			INC(sp, inc)
+		END ;
+		IF nofcand > 0 THEN HeapSort(nofcand, cand); MarkCandidates(nofcand, cand) END
+	END MarkStack0;
+
+	PROCEDURE MarkStack();
+		VAR x: LONGINT;
+	BEGIN
+		MarkStack0(SYSTEM.ADR(x))
 	END MarkStack;
 
 	PROCEDURE GC*(markStack: BOOLEAN);
-		VAR
-			m: Module;
-			i0, i1, i2, i3, i4, i5, i6, i7, i8, i9, i10, i11, i12, i13, i14, i15, i16, i17, i18, i19, i20, i21, i22, i23: LONGINT;
-			cand: ARRAY 10000 OF LONGINT;
+		VAR m: Module;
 	BEGIN
 		IF (gclock = 0) OR (gclock = 1) & ~markStack THEN
 			Lock();
@@ -481,20 +479,8 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 				m := m^.next
 			END ;
 			IF markStack THEN
-				(* generate register pressure to force callee saved registers to memory;
-					may be simplified by inlining OS calls or processor specific instructions
-				*)
-				i0 := -100; i1 := -101; i2 := -102; i3 := -103; i4 := -104; i5 := -105; i6 := -106; i7 := -107; 
-				i8 := 1; i9 := 2; i10 := 3; i11 := 4; i12 := 5; i13 := 6; i14 := 7; i15 := 8;
-				i16 := 9; i17 := 10; i18 := 11; i19 := 12; i20 := 13; i21 := 14; i22 := 15; i23 := 16;
-				LOOP INC(i0, 1); INC(i1, 2); INC(i2, 3); INC(i3, 4); INC(i4, 5); INC(i5, 6); INC(i6, 7); INC(i7, 8);
-					INC(i8, 9); INC(i9, 10); INC(i10, 11); INC(i11, 12); INC(i12, 13); INC(i13, 14); INC(i14, 15); INC(i15, 16);
-					INC(i16, 17); INC(i17, 18); INC(i18, 19); INC(i19, 20); INC(i20, 21); INC(i21, 22); INC(i22, 23); INC(i23, 24);
-					IF (i0 = -99) & (i15 = 24) THEN MarkStack(32, cand); EXIT END
-				END ;
-				IF i0 + i1 + i2 + i3 + i4 + i5 + i6 + i7 + i8 + i9 + i10 + i11 + i12 + i13 + i14 + i15
-					+ i16 + i17 + i18 + i19 + i20 + i21 + i22 + i23 > 10000 THEN RETURN		(* use all variables *)
-				END ;
+				(* TODO OS call or processor specific instruction for flushing registers to stack, e.g. for sparc *)
+				CallMarkStack()
 			END;
 			CheckFin;
 			Scan;

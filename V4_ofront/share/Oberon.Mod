@@ -85,6 +85,8 @@ MODULE Oberon; (*JG 6.9.90 / 23.9.93*)
 		CurFnt*: Fonts.Font; CurCol*, CurOff*: SHORTINT;
 		Password*: LONGINT;
 
+		LoopStarted*: BOOLEAN; (* info for trap handling *)
+
 		DW, DH, CL, H0, H1, H2, H3: INTEGER;
 		unitW: INTEGER;
 
@@ -442,6 +444,7 @@ MODULE Oberon; (*JG 6.9.90 / 23.9.93*)
 			VM: Viewers.ViewerMsg; i: INTEGER; res: LONGINT;	(* << *)
 	BEGIN
 		res := Kernel.sigsetjmp(Kernel.trapEnv, 1);	(* << *)
+		LoopStarted := TRUE;
 		LOOP
 			CurTask := NIL;
 			Input.Mouse(keys, X, Y);
