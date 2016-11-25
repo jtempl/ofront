@@ -708,8 +708,10 @@ MODULE OfrontOPC;	(* copyright (c) J. Templ 12.7.95 / 3.7.96 *)
 					EndStat; BegStat;
 					OPM.WriteString("LONGINT *"); Ident(obj); OPM.WriteString(TagExt);
 					base := NIL
-				ELSIF ptrinit & (vis = 0) & (obj^.mnolev > 0) & (obj^.typ^.form = Pointer) THEN
-					OPM.WriteString(" = NIL")
+				ELSIF ptrinit & (vis = 0) & (obj^.mnolev > 0) THEN
+					IF obj^.typ^.form = Pointer THEN OPM.WriteString(" = NIL")
+					ELSIF obj^.typ^.comp = Record THEN OPM.WriteString(" = {0}")
+					END
 				END
 			END ;
 			obj := obj^.link
