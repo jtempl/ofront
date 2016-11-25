@@ -215,10 +215,4 @@ long SYSTEM_ENTIER(double x);
 void SYSTEM_HALT(int n);
 */
 
-/* callee-saved registers must be stored on the stack before doing garbage collection on the stack */
-#define SYSTEM_CALL_MARKSTACK  static void SYSTEM_callMarkStack(void) { \
-	asm ("push {r4, r5, r6, r7, r8, r9, r10, r11, r12}"); \
-	SYSTEM_MarkStack(); \
-	asm ("pop {r4, r5, r6, r7, r8, r9, r10, r11, r12}"); }
-
 #endif

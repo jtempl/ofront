@@ -16,7 +16,7 @@ OFRONT = $(SETPATH) ofront -s
 
 CC = cc $(CCOPT) -c
 CL = cc $(CCOPT)
-LD = cc -shared -o $(LIBRARY) -ldl -lm -L. -lX11
+LD = cc $(CCOPT) -shared -o $(LIBRARY) -ldl -lm -L. -lX11
 
 ARCHIVE = ar rc libOberonV4.a
 RANLIB = 
@@ -28,7 +28,7 @@ ZIP = gzip -f
 
 
 
-all:    clean cmds  lib obrn wiring tarversion
+all:    clean cmds  lib obrn wiring gpio rpi tarversion
 
 clean:
 	mv SYSTEM.h SYSTEM.h.save
@@ -143,6 +143,14 @@ wiring:
 	$(OFRONT) WiringPi.Mod
 	$(CL) -shared -o libWiringPi.so WiringPi.c -lwiringPi
 
+gpio:
+	$(OFRONT) GPIO.Mod
+	$(CL) -shared -o libGPIO.so GPIO.c
+
+rpi:
+	$(OFRONT) RPI.Mod
+	$(CL) -shared -o libRPI.so RPI.c
+
 tarversion: prepversion tar
 
 prepversion:
@@ -163,7 +171,6 @@ tar:
 	strip $(TARDIR)/bin/*
 	cp $(LIBRARY) $(TARDIR)/lib
 	cp libOberonV4.a $(TARDIR)/lib
-	cp libWiringPi.so $(TARDIR)/lib
 	cp Args.h             Folds.h            KeplerFrames.h     Printer.sym \
 		Args.sym           Folds.sym          KeplerFrames.sym   Reals.h \
 		AsciiCoder.h       FontToBDF.h        KeplerGraphs.h     Reals.sym \
@@ -198,19 +205,14 @@ tar:
 		FoldElems.sym      KeplerElems.sym    Printer.h \
 		Mailer.h	Mailer.sym	Strings.h	Strings.sym \
 		WiringPi.h	WiringPi.sym	MathLX.h	MathLX.sym \
-		Dates.h	Dates.sym \
+		Dates.h	Dates.sym	CallMarkStack.c0 \
 		$(TARDIR)/$(V4_ofront)
-	$(OCAT) Ofront.par  > $(TARDIR)/$(V4_ofront)/Ofront.par
-	$(OCAT) $(CONFIG) > $(TARDIR)/$(V4_ofront)/Configuration.Mod
-	$(OCAT) Modules.Mod > $(TARDIR)/$(V4_ofront)/Modules.Mod
-	$(OCAT) Kernel.Mod > $(TARDIR)/$(V4_ofront)/Kernel.Mod
-	$(OCAT) Reals.Mod > $(TARDIR)/$(V4_ofront)/Reals.Mod
-	$(OCAT) Unix.Mod > $(TARDIR)/$(V4_ofront)/Unix.Mod
-	$(OCAT) WiringPi.Mod > $(TARDIR)/$(V4_ofront)/WiringPi.Mod
-	cp My.Tool $(TARDIR)/$(V4_ofront)/My.Tool
-	cp TestPi.Mod $(TARDIR)/$(V4_ofront)/TestPi.Mod
-	cp TestPiMain.Mod $(TARDIR)/$(V4_ofront)/TestPiMain.Mod
-	cp Syntax10.Scn.Fnt $(TARDIR)/$(V4_ofront)/Syntax10.Scn.Fnt
+	cp ../share/$(CONFIG) $(TARDIR)/$(V4_ofront)/Configuration.Mod
+	cp Ofront.par  Modules.Mod  Kernel.Mod  Reals.Mod  Unix.Mod \
+		Syntax10.Scn.Fnt $(TARDIR)/$(V4_ofront)
+	cp libWiringPi.so  libGPIO.so  libRPI.so  $(TARDIR)/lib
+	cp WiringPi.Mod GPIO.Mod GPIO.c0 RPI.Mod RPI.c0 \
+		My.Tool TestPi.Mod TestPiMain.Mod $(TARDIR)/$(V4_ofront)
 	chmod -R a+x $(TARDIR)/bin $(TARDIR)/lib $(TARDIR)/oberon.bash
 	chmod -R a-w $(TARDIR)/*/*
 	chmod -R a+r $(TARDIR)

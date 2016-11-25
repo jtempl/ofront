@@ -18,7 +18,7 @@ CC = cc $(CCOPT) -c
 CL = cc $(CCOPT)
 # Note to LD: for unknown reasons libX11.so cannot be found where it is under Debian,
 # so we need a link ./libX11.so => /usr/lib/i386-linux-gnu/libX11.so.6
-LD = cc -shared -o $(LIBRARY) -L. -ldl -lm -lX11
+LD = cc $(CCOPT) -shared -o $(LIBRARY) -L. -ldl -lm -lX11
 
 ARCHIVE = ar rc libOberonV4.a
 RANLIB = 
@@ -70,8 +70,8 @@ lib:    oflib  cclib   lnklib
 
 oflib:
 	$(OFRONT) \
-		Modules.Mod X11.Mod Display.Mod  \
-		Input.Mod Math.Mod MathL.Mod Fonts.Mod Viewers.Mod \
+		Modules.Mod X11.Mod Display.Mod Strings.Mod \
+		Input.Mod Math.Mod MathL.Mod MathLX.Mod Fonts.Mod Viewers.Mod \
 		Texts.Mod Oberon.Mod MenuViewers.Mod TextFrames.Mod \
 		In.Mod Out.Mod Printer.Mod TextPrinter.Mod ParcElems.Mod \
 		System.Mod Edit.Mod EdiT.Mod EditTools.Mod MenuElems.Mod IconElems.Mod \
@@ -83,12 +83,12 @@ oflib:
 		Types.Mod Display1.Mod KeplerPorts.Mod KeplerGraphs.Mod \
 		KeplerFrames.Mod Kepler.Mod Kepler1.Mod Kepler2.Mod Kepler4.Mod \
 		Kepler5.Mod Kepler6.Mod Kepler7.Mod Kepler8.Mod Kepler9.Mod \
-		KeplerElems.Mod Mailer.Mod
+		KeplerElems.Mod Mailer.Mod Dates.Mod
 
 cclib:
 	$(CC) \
-		Modules.c X11.c Display.c \
-		Input.c Math.c MathL.c Fonts.c Viewers.c \
+		Modules.c X11.c Display.c Strings.c \
+		Input.c Math.c MathL.c MathLX.c Fonts.c Viewers.c \
 		Texts.c Oberon.c MenuViewers.c TextFrames.c \
 		In.c Out.c Printer.c TextPrinter.c ParcElems.c System.c  \
 		Edit.c EdiT.c EditTools.c MenuElems.c IconElems.c ClockElems.c \
@@ -98,13 +98,14 @@ cclib:
 		TextPFrames.c TextPreview.c Colors.c FontToBDF.c \
 		Types.c Display1.c KeplerPorts.c KeplerGraphs.c \
 		KeplerFrames.c Kepler.c Kepler1.c Kepler2.c Kepler4.c \
-		Kepler5.c Kepler6.c Kepler7.c Kepler8.c Kepler9.c KeplerElems.c Mailer.c
+		Kepler5.c Kepler6.c Kepler7.c Kepler8.c Kepler9.c KeplerElems.c Mailer.c \
+		Dates.c
 
 lnklib:
 	$(LD) \
 		SYSTEM.o Args.o Console.o Modules.o \
-		Unix.o Kernel.o Files.o X11.o Display.o\
-		Input.o Math.o MathL.o Fonts.o Viewers.o Reals.o\
+		Unix.o Kernel.o Files.o X11.o Display.o Strings.o Dates.o \
+		Input.o Math.o MathL.o MathLX.o Fonts.o Viewers.o Reals.o\
 		Texts.o CmdlnTexts.o Oberon.o MenuViewers.o TextFrames.o \
 		In.o Out.o Printer.o TextPrinter.o ParcElems.o System.o\
 		Edit.o EdiT.o EditTools.o MenuElems.o IconElems.o ClockElems.o\
@@ -117,8 +118,8 @@ lnklib:
 		Kepler5.o Kepler6.o Kepler7.o Kepler8.o Kepler9.o KeplerElems.o Mailer.o
 	$(ARCHIVE) \
 		SYSTEM.o Args.o Console.o Modules.o \
-		Unix.o Kernel.o Files.o X11.o Display.o\
-		Input.o Math.o MathL.o Fonts.o Viewers.o Reals.o\
+		Unix.o Kernel.o Files.o X11.o Display.o Strings.o Dates.o \
+		Input.o Math.o MathL.o MathLX.o Fonts.o Viewers.o Reals.o\
 		Texts.o CmdlnTexts.o Oberon.o MenuViewers.o TextFrames.o \
 		In.o Out.o Printer.o TextPrinter.o ParcElems.o System.o\
 		Edit.o EdiT.o EditTools.o MenuElems.o IconElems.o ClockElems.o\
@@ -192,15 +193,13 @@ tar:
 		Files.sym          Kepler9.sym        PopupElems.h       X11.sym \
 		FoldElems.h        KeplerElems.h      PopupElems.sym \
 		FoldElems.sym      KeplerElems.sym    Printer.h \
-		Mailer.h	Mailer.sym      \
+		Mailer.h	Mailer.sym	Strings.h	Strings.sym \
+		MathLX.h	MathLX.sym	CallMarkStack.c0 \
+		Dates.h	Dates.sym \
 		$(TARDIR)/$(V4_ofront)
-	$(OCAT) Ofront.par  > $(TARDIR)/$(V4_ofront)/Ofront.par
-	$(OCAT) $(CONFIG) > $(TARDIR)/$(V4_ofront)/Configuration.Mod
-	$(OCAT) Modules.Mod > $(TARDIR)/$(V4_ofront)/Modules.Mod
-	$(OCAT) Kernel.Mod > $(TARDIR)/$(V4_ofront)/Kernel.Mod
-	$(OCAT) Reals.Mod > $(TARDIR)/$(V4_ofront)/Reals.Mod
-	$(OCAT) Unix.Mod > $(TARDIR)/$(V4_ofront)/Unix.Mod
-	cp Syntax10.Scn.Fnt $(TARDIR)/$(V4_ofront)/Syntax10.Scn.Fnt
+	cp ../share/$(CONFIG) $(TARDIR)/$(V4_ofront)/Configuration.Mod
+	cp Ofront.par  Modules.Mod  Kernel.Mod  Reals.Mod  Unix.Mod \
+		Syntax10.Scn.Fnt $(TARDIR)/$(V4_ofront)
 	chmod -R a+x $(TARDIR)/bin $(TARDIR)/lib $(TARDIR)/oberon.bash
 	chmod -R a-w $(TARDIR)/*/*
 	chmod -R a+r $(TARDIR)
