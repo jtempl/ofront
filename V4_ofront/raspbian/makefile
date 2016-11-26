@@ -81,7 +81,9 @@ oflib:
 		Types.Mod Display1.Mod KeplerPorts.Mod KeplerGraphs.Mod \
 		KeplerFrames.Mod Kepler.Mod Kepler1.Mod Kepler2.Mod Kepler4.Mod \
 		Kepler5.Mod Kepler6.Mod Kepler7.Mod Kepler8.Mod Kepler9.Mod \
-		KeplerElems.Mod Mailer.Mod Dates.Mod
+		KeplerElems.Mod Mailer.Mod Dates.Mod \
+		Graphics.Mod GraphicFrames.Mod GraphicElems.Mod GraphicOps.Mod Draw.Mod \
+		Rectangles.Mod Curves.Mod Splines.Mod
 
 cclib:
 	$(CC) \
@@ -97,7 +99,8 @@ cclib:
 		Types.c Display1.c KeplerPorts.c KeplerGraphs.c \
 		KeplerFrames.c Kepler.c Kepler1.c Kepler2.c Kepler4.c \
 		Kepler5.c Kepler6.c Kepler7.c Kepler8.c Kepler9.c KeplerElems.c Mailer.c \
-		Dates.c
+		Dates.c Graphics.c GraphicFrames.c GraphicElems.c GraphicOps.c Draw.c \
+		Rectangles.c Curves.c Splines.c
 
 lnklib:
 	$(LD) \
@@ -113,7 +116,10 @@ lnklib:
 		TextPFrames.o TextPreview.o Colors.o FontToBDF.o\
 		Types.o Display1.o KeplerPorts.o KeplerGraphs.o\
 		KeplerFrames.o Kepler.o Kepler1.o Kepler2.o Kepler4.o\
-		Kepler5.o Kepler6.o Kepler7.o Kepler8.o Kepler9.o KeplerElems.o Mailer.o
+		Kepler5.o Kepler6.o Kepler7.o Kepler8.o Kepler9.o KeplerElems.o Mailer.o \
+		Graphics.o GraphicFrames.o GraphicElems.o GraphicOps.o Draw.o \
+		Rectangles.o Curves.o Splines.o
+
 	$(ARCHIVE) \
 		SYSTEM.o Args.o Console.o Modules.o \
 		Unix.o Kernel.o Files.o X11.o Display.o Strings.o Dates.o \
@@ -127,7 +133,10 @@ lnklib:
 		TextPFrames.o TextPreview.o Colors.o FontToBDF.o\
 		Types.o Display1.o KeplerPorts.o KeplerGraphs.o\
 		KeplerFrames.o Kepler.o Kepler1.o Kepler2.o Kepler4.o\
-		Kepler5.o Kepler6.o Kepler7.o Kepler8.o Kepler9.o KeplerElems.o Mailer.o
+		Kepler5.o Kepler6.o Kepler7.o Kepler8.o Kepler9.o KeplerElems.o Mailer.o \
+		Graphics.o GraphicFrames.o GraphicElems.o GraphicOps.o Draw.o \
+		Rectangles.o Curves.o Splines.o
+
 	$(RANLIB)
 
 obrn:
@@ -206,6 +215,10 @@ tar:
 		Mailer.h	Mailer.sym	Strings.h	Strings.sym \
 		WiringPi.h	WiringPi.sym	MathLX.h	MathLX.sym \
 		Dates.h	Dates.sym	CallMarkStack.c0 \
+		Graphics.h GraphicFrames.h GraphicElems.h GraphicOps.h Draw.h \
+		Graphics.sym GraphicFrames.sym GraphicElems.sym GraphicOps.sym Draw.sym \
+		Rectangles.h Curves.h Splines.h \
+		Rectangles.sym Curves.sym Splines.sym \
 		$(TARDIR)/$(V4_ofront)
 	cp ../share/$(CONFIG) $(TARDIR)/$(V4_ofront)/Configuration.Mod
 	cp Ofront.par  Modules.Mod  Kernel.Mod  Reals.Mod  Unix.Mod \
