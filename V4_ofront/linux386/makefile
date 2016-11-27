@@ -34,7 +34,7 @@ all:    clean cmds  lib obrn tarversion
 
 clean:
 	mv SYSTEM.h SYSTEM.h.save
-	rm -f libOberon* oberon showdef ocat ofront
+	rm -f libOberonV4.so oberon showdef ocat ofront
 	rm -f *.c *.o *.sym *.s *.h a.out core
 	mv SYSTEM.h.save SYSTEM.h
 
@@ -167,7 +167,6 @@ tar:
 	cp showdef ocat $(TARDIR)/bin
 	cp /tmp/ofront $(TARDIR)/bin/ofront
 	cp /tmp/oberon $(TARDIR)/bin/oberon
-	strip $(TARDIR)/bin/*
 	cp $(LIBRARY) $(TARDIR)/lib
 	cp libOberonV4.a $(TARDIR)/lib
 	cp Args.h             Folds.h            KeplerFrames.h     Printer.sym \
