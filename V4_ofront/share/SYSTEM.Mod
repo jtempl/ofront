@@ -32,7 +32,7 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 	(* heap chunks *)
 		nextChnkOff = 0;	(* next heap chunk, sorted ascendingly! *)
 		endOff = SZL;	(* end of heap chunk *)
-		blkOff = 3*SZL;	(* first block in a chunk *)
+		blkOff = 3*SZL;	(* first block in a chunk, starts with tag *)
 
 	(* heap blocks *)
 		tagOff = 0;	(* block starts with tag *)
@@ -87,7 +87,7 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 
 		(* extensible heap *)
 		heap,	(* the sorted list of heap chunks *)
-		heapend,	(* max possible pointer value (used for stack collection) *)
+		heapNegMin, heapNegMax, heapPosMin, heapPosMax, (* filter for pointers; used for stack collection *)
 		heapsize*: LONGINT;	(* the sum of all heap chunk sizes *)
 
 		(* finalization candidates *)
@@ -138,17 +138,24 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 	END INCREF;
 
 	PROCEDURE NewChunk(blksz: LONGINT): LONGINT;
-		VAR chnk: LONGINT;
+		VAR chnk, blk, end: LONGINT;
 	BEGIN
 		chnk := malloc(blksz + blkOff);
 		IF chnk # 0 THEN
-			SYSTEM.PUT(chnk + endOff, chnk + (blkOff + blksz));
-			SYSTEM.PUT(chnk + blkOff, chnk + (blkOff + sizeOff));
-			SYSTEM.PUT(chnk + (blkOff + sizeOff), blksz);
-			SYSTEM.PUT(chnk + (blkOff + sntlOff), NoPtrSntl);
-			SYSTEM.PUT(chnk + (blkOff + nextOff), bigBlocks);
-			bigBlocks := chnk + blkOff;
-			INC(heapsize, blksz)
+			blk := chnk + blkOff; end := blk + blksz; (* heap chunk consists of a single block *)
+			SYSTEM.PUT(chnk + endOff, end);
+			SYSTEM.PUT(blk + tagOff, blk + sizeOff);
+			SYSTEM.PUT(blk + sizeOff, blksz);
+			SYSTEM.PUT(blk + sntlOff, NoPtrSntl);
+			SYSTEM.PUT(blk + nextOff, bigBlocks); bigBlocks := blk; (* prepend block to list of big blocks *)
+			INC(heapsize, blksz);
+			IF chnk > 0 THEN
+				IF chnk < heapPosMin THEN heapPosMin := blk + SZL END ;
+				IF end > heapPosMax THEN heapPosMax := end END
+			ELSE (*chnk < 0*)
+				IF chnk < heapNegMin THEN heapNegMin := blk + SZL END ;
+				IF end > heapNegMax THEN heapNegMax := end END
+			END
 		END ;
 		RETURN chnk
 	END NewChunk;
@@ -168,8 +175,7 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 				j := heap; SYSTEM.GET(j, next);
 				WHILE (next # 0) & (chnk > next) DO j := next; SYSTEM.GET(j, next) END ;
 				SYSTEM.PUT(chnk, next); SYSTEM.PUT(j, chnk)
-			END ;
-			IF next = 0 THEN SYSTEM.GET(chnk + endOff, heapend) END
+			END
 		END
 	END ExtendHeap;
 
@@ -453,7 +459,8 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 		IF sp > stack0 THEN inc := -inc END ;
 		WHILE sp # stack0 DO
 			SYSTEM.GET(sp, p);
-			IF (p > heap) & (p < heapend) THEN
+			IF (p > 0) & (p >= heapPosMin) & (p < heapPosMax)
+			OR (p < 0) & (p >= heapNegMin) & (p < heapNegMax) THEN
 				IF nofcand = LEN(cand) THEN HeapSort(nofcand, cand); MarkCandidates(nofcand, cand); nofcand := 0 END ;
 				cand[nofcand] := p; INC(nofcand)
 			END ;
@@ -479,7 +486,7 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 				m := m^.next
 			END ;
 			IF markStack THEN
-				(* TODO OS call or processor specific instruction for flushing registers to stack, e.g. for sparc *)
+				(* indirect call for allowing to flush the registers onto the stack *)
 				CallMarkStack()
 			END;
 			CheckFin;
@@ -497,10 +504,11 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 
 	PROCEDURE InitHeap;	(* initialized before body to enable NEW, SYSTEM.NEW *)
 	BEGIN
+		heap := 0; heapsize := 0; allocated := 0; gclock := 0;
+		heapPosMin := MAX(LONGINT); heapPosMax := 0; heapNegMin := 0; heapNegMax := MIN(LONGINT);
 		heap := NewChunk(heapSize0);
-		SYSTEM.GET(heap + endOff, heapend);
-		SYSTEM.PUT(heap, LONG(LONG(0)));
-		allocated := 0; firstTry := TRUE; freeList[nofLists] := 1; gclock := 0
+		SYSTEM.PUT(heap + nextChnkOff, LONG(LONG(0)));
+		firstTry := TRUE; freeList[nofLists] := 1
 	END InitHeap;
 
 END SYSTEM.
