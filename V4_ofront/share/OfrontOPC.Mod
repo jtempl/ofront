@@ -709,8 +709,9 @@ MODULE OfrontOPC;	(* copyright (c) J. Templ 12.7.95 / 3.7.96 *)
 					OPM.WriteString("LONGINT *"); Ident(obj); OPM.WriteString(TagExt);
 					base := NIL
 				ELSIF ptrinit & (vis = 0) & (obj^.mnolev > 0) THEN
-					IF obj^.typ^.form = Pointer THEN OPM.WriteString(" = NIL")
+					IF obj^.typ^.form IN {Pointer, ProcTyp} THEN OPM.WriteString(" = NIL")
 					ELSIF obj^.typ^.comp = Record THEN OPM.WriteString(" = {0}")
+					ELSIF obj^.typ^.form IN {Byte, Bool, Char, SInt, Int, LInt, Real, LReal, Set} THEN OPM.WriteString(" = 0")
 					END
 				END
 			END ;
