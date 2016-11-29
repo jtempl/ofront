@@ -93,6 +93,15 @@ MODULE Kernel;
     t := time.sec + ASH(time.min, 6) + ASH(time.hour, 12);
     d := time.mday + ASH(time.mon+1, 5) + ASH(time.year MOD 100, 9); 
   END GetClock;
+  
+  PROCEDURE GetClock4* (VAR t, d: LONGINT);  (* returns year with all (4) digits *)
+    VAR tv: Unix.Timeval; tz: Unix.Timezone; time: RealTime;
+  BEGIN
+    Unix.Gettimeofday(tv, tz);
+    time := localtime(tv.sec);
+    t := time.sec + ASH(time.min, 6) + ASH(time.hour, 12);
+    d := time.mday + ASH(time.mon+1, 5) + ASH(time.year, 9); 
+  END GetClock4;
 
   PROCEDURE SetClock* (t, d: LONGINT);
     VAR err: ARRAY 25 OF CHAR;
@@ -169,7 +178,7 @@ MODULE Kernel;
   PROCEDURE -Error(msg: ARRAY OF CHAR; len: INTEGER)
     "write(1/*stdout*/, msg, len); char ch = 0xa; write(1, &ch, 1)";
 
-  PROCEDURE JmpBufCheck; (* check for inconsistent usage of sigjmp_buf *)
+  PROCEDURE JmpBufCheck; (* check for inconsistent usage of sigjmp_buf; better avoid Unix_JmpBuf *)
     VAR x, y: LONGINT;
   BEGIN
     x := SizeofUnixJmpBuf();
