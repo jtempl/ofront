@@ -29,7 +29,7 @@ MODULE Texts;	(** CAS/HM 23.9.93 -- interface based on Texts by JG/NW 6.12.91**)
 			len: LONGINT;
 			fnt: Fonts.Font;
 			col, voff: SHORTINT;
-			ascii: BOOLEAN	(* << *)
+			ascii: BOOLEAN
 		END;
 
 		Piece = POINTER TO PieceDesc;
@@ -97,8 +97,8 @@ MODULE Texts;	(** CAS/HM 23.9.93 -- interface based on Texts by JG/NW 6.12.91**)
 			x*: REAL;
 			y*: LONGREAL;
 			c*: CHAR;
-			len*: SHORTINT;
-			s*: ARRAY 64 OF CHAR	(* << *)
+			len*: INTEGER;
+			s*: ARRAY 256 OF CHAR
 		END;
 
 		Writer* = RECORD
@@ -152,7 +152,7 @@ MODULE Texts;	(** CAS/HM 23.9.93 -- interface based on Texts by JG/NW 6.12.91**)
 		VAR p, q: Piece;
 	BEGIN
 		IF (u IS Piece) & (v IS Piece) & (u.fnt.name = v.fnt.name) & (u.col = v.col) & (u.voff = v.voff)
-		& (u(Piece).ascii = v(Piece).ascii) THEN	(* << *)
+		& (u(Piece).ascii = v(Piece).ascii) THEN
 			p := u(Piece); q := v(Piece);
 			IF (p.file = q.file) & (p.org + p.len = q.org) THEN
 				IF T.cache = u THEN INC(T.corg, q.len)
@@ -216,7 +216,7 @@ MODULE Texts;	(** CAS/HM 23.9.93 -- interface based on Texts by JG/NW 6.12.91**)
 				END
 			ELSIF msg IS IdentifyMsg THEN
 				WITH msg: IdentifyMsg DO
-					COPY(E.mod, msg.mod); COPY(E.proc, msg.proc); msg.mod[31] := 1X (*alien*)
+					COPY(E.mod, msg.mod); COPY(E.proc, msg.proc)
 				END
 			ELSIF msg IS FileMsg THEN
 				WITH msg: FileMsg DO
@@ -277,7 +277,7 @@ MODULE Texts;	(** CAS/HM 23.9.93 -- interface based on Texts by JG/NW 6.12.91**)
 		len := B.len; v := B.head.next;
 		Merge(T, u, v); Splice(un, v, B.head.prev, T);
 		INC(T.len, len); B.head.next := B.head; B.head.prev := B.head; B.len := 0;
-		T.notify(T, insert, pos, pos + len)
+		IF T.notify # NIL THEN T.notify(T, insert, pos, pos + len) END
 	END Insert;
 
 	PROCEDURE Append* (T: Text; B: Buffer);
@@ -285,7 +285,7 @@ MODULE Texts;	(** CAS/HM 23.9.93 -- interface based on Texts by JG/NW 6.12.91**)
 	BEGIN pos := T.len; len := B.len; v := B.head.next;
 		Merge(T, T.head.prev, v); Splice(T.head, v, B.head.prev, T);
 		INC(T.len, len); B.head.next := B.head; B.head.prev := B.head; B.len := 0;
-		T.notify(T, insert, pos, pos + len)
+		IF T.notify # NIL THEN T.notify(T, insert, pos, pos + len) END
 	END Append;
 
 	PROCEDURE Delete* (T: Text; beg, end: LONGINT);
@@ -297,7 +297,7 @@ MODULE Texts;	(** CAS/HM 23.9.93 -- interface based on Texts by JG/NW 6.12.91**)
 		Splice(del.head, un, v, NIL);
 		Merge(T, u, vn); u.next := vn; vn.prev := u;
 		DEC(T.len, end - beg);
-		T.notify(T, delete, beg, end)
+		IF T.notify # NIL THEN T.notify(T, delete, beg, end) END
 	END Delete;
 
 	PROCEDURE ChangeLooks* (T: Text; beg, end: LONGINT; sel: SET; fnt: Fonts.Font; col, voff: SHORTINT);
@@ -312,7 +312,7 @@ MODULE Texts;	(** CAS/HM 23.9.93 -- interface based on Texts by JG/NW 6.12.91**)
 			IF u.next = un THEN u := un; un := un.next ELSE u.next := un; un.prev := u END
 		END;
 		Merge(T, u, un); u.next := un; un.prev := u;
-		T.notify(T, replace, beg, end)
+		IF T.notify # NIL THEN T.notify(T, replace, beg, end) END
 	END ChangeLooks;
 
 
@@ -387,7 +387,7 @@ MODULE Texts;	(** CAS/HM 23.9.93 -- interface based on Texts by JG/NW 6.12.91**)
 		x = 2^(e-1023) * 1.m   bit 0: sign, bits 1-11: e, bits 12-63: m *)
 
 	PROCEDURE Scan* (VAR S: Scanner);
-		CONST maxD = 32;
+		CONST maxD = 256; (* fixed size: maxD <= LEN(S.s)! *)
 		VAR ch, term: CHAR;
 			neg, negE, hex: BOOLEAN;
 			i, j, h: SHORTINT;
@@ -419,13 +419,13 @@ MODULE Texts;	(** CAS/HM 23.9.93 -- interface based on Texts by JG/NW 6.12.91**)
 				OR ("A" > CAP(ch)) & (ch > "9")
 				OR ("0" > ch) & (ch # ".") & (ch # "/")	(* << *)
 				OR (i = 63);	(* << *)
-			S.s[i] := 0X; S.len := i; S.class := 1
+			S.s[i] := 0X; S.len := i; S.class := Name
 		ELSIF ch = 22X THEN (*literal string*)
 			Read(S, ch);
 			WHILE (ch # 22X) & (ch >= " ") & (i # 63) DO	(* << *)
 				S.s[i] := ch; INC(i); Read(S, ch)
 			END;
-			S.s[i] := 0X; S.len := i+1; Read(S, ch); S.class := 2
+			S.s[i] := 0X; S.len := i+1; Read(S, ch); S.class := String
 		ELSE
 			IF ch = "-" THEN neg := TRUE; Read(S, ch) ELSE neg := FALSE END ;
 			IF ("0" <= ch) & (ch <= "9") THEN (*number*)
@@ -440,7 +440,7 @@ MODULE Texts;	(** CAS/HM 23.9.93 -- interface based on Texts by JG/NW 6.12.91**)
 					END
 				END;
 				IF ch = "H" THEN (*hex number*)
-					Read(S, ch); S.class := 3;
+					Read(S, ch); S.class := Int;
 					IF i-j > 8 THEN j := i-8 END ;
 					k := ORD(d[j]) - 30H; INC(j);
 					IF (i-j = 7) & (k >= 8) THEN DEC(k, 16) END ;
@@ -460,7 +460,7 @@ MODULE Texts;	(** CAS/HM 23.9.93 -- interface based on Texts by JG/NW 6.12.91**)
 							IF e <= 308 THEN y := Reals.TenL(e) * y ELSE HALT(40) END 
 						END ;
 						IF neg THEN y := -y END ;
-						S.class := 5; S.y := y
+						S.class := LongReal; S.y := y
 					ELSE e := 0; x := 0; f := 1;
 						REPEAT x := x*10 + (ORD(d[j]) - 30H); INC(j) UNTIL j = h;
 						WHILE j < i DO f := f/10; x := (ORD(d[j])-30H)*f + x; INC(j) END;
@@ -471,16 +471,16 @@ MODULE Texts;	(** CAS/HM 23.9.93 -- interface based on Texts by JG/NW 6.12.91**)
 							IF e <= 38 THEN x := Reals.Ten(e) * x ELSE HALT(40) END
 						END ;
 						IF neg THEN x := -x END ;
-						S.class := 4; S.x := x
+						S.class := Real; S.x := x
 					END ;
-					IF hex THEN S.class := 0 END
+					IF hex THEN S.class := Inval END
 				ELSE (*decimal integer*)
-					S.class := 3; k := 0;
+					S.class := Int; k := 0;
 					REPEAT k := k*10 + (ORD(d[j]) - 30H); INC(j) UNTIL j = i;
 					IF neg THEN S.i := -k ELSE S.i := k END;
-					IF hex THEN S.class := 0 ELSE S.class := 3 END
+					IF hex THEN S.class := Inval ELSE S.class := Int END
 				END
-			ELSE S.class := 6;
+			ELSE S.class := Char;
 				IF neg THEN S.c := "-" ELSE S.c := ch; Read(S, ch) END
 			END
 		END;
@@ -513,11 +513,11 @@ MODULE Texts;	(** CAS/HM 23.9.93 -- interface based on Texts by JG/NW 6.12.91**)
 		VAR u, un: Run; p: Piece;
 	BEGIN Files.Write(W.rider, ch); INC(W.buf.len); un := W.buf.head; u := un.prev;
 		IF (u IS Piece) & (u(Piece).file = W.file) & (u.fnt.name = W.fnt.name) & (u.col = W.col) & (u.voff = W.voff)
-		& ~u(Piece).ascii THEN (* << *)
-			INC(u.len)
+			& ~u(Piece).ascii
+		THEN INC(u.len)
 		ELSE NEW(p); u.next := p; p.prev := u; p.next := un; un.prev := p;
 			p.len := 1; p.fnt := W.fnt; p.col := W.col; p.voff := W.voff;
-			p.file := W.file; p.org := Files.Length(W.file) - 1; p.ascii := FALSE (* << *)
+			p.file := W.file; p.org := Files.Length(W.file) - 1; p.ascii := FALSE
 		END
 	END Write;
 
@@ -737,7 +737,7 @@ MODULE Texts;	(** CAS/HM 23.9.93 -- interface based on Texts by JG/NW 6.12.91**)
 		NEW(u); u.len := MAX(LONGINT); (*u.fnt := Fonts.Default;*)u.fnt := NIL; u.col := Display.white;
 		T.head := u; ecnt := 0; fcnt := 0;
 		msg.id := load; msg.r := r;
-		Files.ReadLInt(msg.r, hlen); (*!!!org := pos + hlen;*) org := pos -2 + hlen; pos := org; Files.Read(msg.r, fno);
+		Files.ReadLInt(msg.r, hlen); org := (pos - 2) + hlen; pos := org; Files.Read(msg.r, fno);
 		WHILE fno # 0 DO
 			IF fno > fcnt THEN fcnt := fno; Files.ReadString(msg.r, name); fnts[fno] := Fonts.This(name) END;
 			Files.Read(msg.r, col); Files.Read(msg.r, voff); Files.ReadLInt(msg.r, plen);
@@ -785,7 +785,7 @@ MODULE Texts;	(** CAS/HM 23.9.93 -- interface based on Texts by JG/NW 6.12.91**)
 	END Open;
 
 	PROCEDURE Store* (VAR r: Files.Rider; T: Text);
-		VAR r1: Files.Rider; u, un: Run; e: Elem; org, pos, delta, hlen, rlen: LONGINT; ecnt, fno, fcnt: SHORTINT; ch: CHAR;	(* << *)
+		VAR r1: Files.Rider; u, un: Run; e: Elem; org, pos, delta, hlen, rlen: LONGINT; ecnt, fno, fcnt: SHORTINT; ch: CHAR;
 			msg: FileMsg; iden: IdentifyMsg;
 			mods, procs: ARRAY 64, 32 OF CHAR;
 			fnts: ARRAY 32 OF Fonts.Font;
@@ -825,7 +825,7 @@ MODULE Texts;	(** CAS/HM 23.9.93 -- interface based on Texts by JG/NW 6.12.91**)
 			END
 		END;
 		Files.Write(msg.r, 0); Files.WriteLInt(msg.r, T.len - delta);
-		(*!!!hlen := Files.Pos(msg.r) - org;*) hlen := Files.Pos(msg.r) - org + 2;
+		hlen := Files.Pos(msg.r) - org + 2;
 		Files.Set(r1, Files.Base(msg.r), org); Files.WriteLInt(r1, hlen); (*fixup*)
 		u := T.head.next;
 		WHILE u # T.head DO
@@ -851,7 +851,7 @@ MODULE Texts;	(** CAS/HM 23.9.93 -- interface based on Texts by JG/NW 6.12.91**)
 	END Store;
 	
 	PROCEDURE Close* (T: Text; name: ARRAY OF CHAR);
-		VAR f: Files.File; r: Files.Rider; i, res: INTEGER; bak: ARRAY 64 OF CHAR;
+		VAR f: Files.File; r: Files.Rider; i, res: INTEGER; bak: ARRAY 256 OF CHAR;
 	BEGIN
 		f := Files.New(name); Files.Set(r, f, 0); Files.Write(r, textTag); Files.Write(r, version); Store(r, T);
 		i := 0; WHILE name[i] # 0X DO INC(i) END;
