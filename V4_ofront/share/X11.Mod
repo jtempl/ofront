@@ -671,7 +671,7 @@ MODULE X11;	(* RC 12.10.92, JT 13.12.94 *)
 	BEGIN
 		Kernel.Lock();
 		IF depth = 24 (* hack to support TrueColor displays *) THEN  
-			pixelValues[col] := ASH(red, 0) + ASH(green, 8) + ASH(blue, 16)
+			pixelValues[col] := ASH(red, 16) + ASH(green, 8) + ASH(blue, 0)
 		ELSIF depth = 16 (* e.g. Raspberry Pi default setting *) THEN
 			pixelValues[col] := ASH(ASH(red, -3), 11) + ASH(ASH(green, -2), 5) + ASH(ASH(blue, -3), 0)
 		END ;
