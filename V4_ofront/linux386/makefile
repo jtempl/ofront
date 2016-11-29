@@ -85,7 +85,7 @@ oflib:
 		Kepler5.Mod Kepler6.Mod Kepler7.Mod Kepler8.Mod Kepler9.Mod \
 		KeplerElems.Mod Mailer.Mod Dates.Mod \
 		Graphics.Mod GraphicFrames.Mod GraphicElems.Mod GraphicOps.Mod Draw.Mod \
-		Rectangles.Mod Curves.Mod Splines.Mod
+		Rectangles.Mod Curves.Mod Splines.Mod Documents.Mod Hex.Mod HandlerElems.Mod EditKeys.Mod
 
 cclib:
 	$(CC) \
@@ -102,7 +102,7 @@ cclib:
 		KeplerFrames.c Kepler.c Kepler1.c Kepler2.c Kepler4.c \
 		Kepler5.c Kepler6.c Kepler7.c Kepler8.c Kepler9.c KeplerElems.c Mailer.c \
 		Dates.c Graphics.c GraphicFrames.c GraphicElems.c GraphicOps.c Draw.c \
-		Rectangles.c Curves.c Splines.c
+		Rectangles.c Curves.c Splines.c Documents.c Hex.c HandlerElems.c EditKeys.c
 
 lnklib:
 	$(LD) \
@@ -120,7 +120,7 @@ lnklib:
 		KeplerFrames.o Kepler.o Kepler1.o Kepler2.o Kepler4.o\
 		Kepler5.o Kepler6.o Kepler7.o Kepler8.o Kepler9.o KeplerElems.o Mailer.o \
 		Graphics.o GraphicFrames.o GraphicElems.o GraphicOps.o Draw.o \
-		Rectangles.o Curves.o Splines.o
+		Rectangles.o Curves.o Splines.o Documents.o Hex.o HandlerElems.o EditKeys.o
 
 	$(ARCHIVE) \
 		SYSTEM.o Args.o Console.o Modules.o \
@@ -137,7 +137,7 @@ lnklib:
 		KeplerFrames.o Kepler.o Kepler1.o Kepler2.o Kepler4.o\
 		Kepler5.o Kepler6.o Kepler7.o Kepler8.o Kepler9.o KeplerElems.o Mailer.o \
 		Graphics.o GraphicFrames.o GraphicElems.o GraphicOps.o Draw.o \
-		Rectangles.o Curves.o Splines.o
+		Rectangles.o Curves.o Splines.o Documents.o Hex.o HandlerElems.o EditKeys.o
 
 	$(RANLIB)
 
@@ -203,7 +203,13 @@ tar:
 		FoldElems.sym      KeplerElems.sym    Printer.h \
 		Mailer.h	Mailer.sym	Strings.h	Strings.sym \
 		MathLX.h	MathLX.sym	CallMarkStack.c0 \
-		Dates.h	Dates.sym \
+		Dates.h	Dates.sym	CallMarkStack.c0 \
+		Graphics.h GraphicFrames.h GraphicElems.h GraphicOps.h Draw.h \
+		Rectangles.h Curves.h Splines.h \
+		Graphics.sym GraphicFrames.sym GraphicElems.sym GraphicOps.sym Draw.sym \
+		Rectangles.sym Curves.sym Splines.sym \
+		Documents.h Documents.sym \
+		Hex.h Hex.sym  HandlerElems.h HandlerElems.sym  EditKeys.h EditKeys.sym \
 		$(TARDIR)/$(V4_ofront)
 	cp ../share/$(CONFIG) $(TARDIR)/$(V4_ofront)/Configuration.Mod
 	cp Ofront.par  Modules.Mod  Kernel.Mod  Reals.Mod  Unix.Mod \

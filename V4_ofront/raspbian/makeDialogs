@@ -8,7 +8,7 @@ OFRONT = $(SETPATH) ofront -s
 LD = cc $(CCOPT) -shared -o $(LIBRARY) -L. -lOberonV4
 ZIP = gzip -f
 TARDIR = /tmp/OberonDialogs
-TARFILE = /tmp/OberonDialogs.tar
+TARFILE = /tmp/OberonDialogs_raspbian.tar
 
 all:     lib 
 
@@ -43,6 +43,7 @@ cclib:
 
 tar:
 	rm -fr $(TARDIR)
+	rm -f $(TARFILE)
 	mkdir $(TARDIR)
 	mkdir $(TARDIR)/V4
 	mkdir $(TARDIR)/lib
