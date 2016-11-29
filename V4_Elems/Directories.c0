@@ -1,0 +1,31 @@
+#include <dirent.h>
+#include <errno.h>
+#include <sys/types.h>
+
+static INTEGER mapError(INTEGER err) {
+	switch (err) {
+		case ENOENT: return 1;  /* badName */
+		case ENOTDIR: return 5;  /* notADir */
+		default: return 7; /* otherError */
+	}
+}
+
+static INTEGER enumFiles(void* dir, const char* dirpath, Directories_FileProc filter) {
+	DIR *dirp = opendir(dirpath);
+	if (dirp) {
+		struct dirent de;
+		struct dirent *result;
+		int res = readdir_r(dirp, &de, &result);
+		BOOLEAN cont = 1;
+		while (res == 0 && result && cont) {
+			if (de.d_type == DT_REG || de.d_type == DT_DIR) {
+				filter(dir, de.d_name, sizeof(de.d_name), de.d_type == DT_DIR, &cont);
+			}
+			res = readdir_r(dirp, &de, &result);
+		}
+		closedir(dirp);
+		return res;
+	} else {
+		return errno;
+	}
+}

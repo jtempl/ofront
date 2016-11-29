@@ -24,21 +24,6 @@ clean:
 	rm -fr $(v4PATH)  $(manPATH)  $(fontsPATH)
 	rm -f  $(v4TAR) $(manTAR) $(fontsTAR)
 
-rasall:
-	rm -f  /tmp/ofront-1.4_raspbian_all.tar.gz
-	rm -rf /tmp/rasall
-	mkdir  /tmp/rasall
-	cp /tmp/ofront-1.4_raspbian-Pi3.tar.gz /tmp/rasall
-	gunzip /tmp/rasall/ofront-1.4_raspbian-Pi3.tar.gz
-	cd /tmp/rasall; tar xf /tmp/rasall/ofront-1.4_raspbian-Pi3.tar
-	cp -R /tmp/man1  /tmp/rasall/ofront_1.4/
-	cp -R /tmp/fonts /tmp/rasall/ofront_1.4/
-	cp -R /tmp/V4    /tmp/rasall/ofront_1.4/
-	cd /tmp/rasall; tar cf ofront-1.4_raspbian_all.tar ofront_1.4
-	$(ZIP) /tmp/rasall/ofront-1.4_raspbian_all.tar
-	mv /tmp/rasall/ofront-1.4_raspbian_all.tar.gz /tmp
-	echo "created file /tmp/ofront-1.4_raspbian_all.tar.gz"
-
 v4:
 	rm -fr $(v4PATH) $(v4TAR)
 	mkdir $(v4PATH)
@@ -68,7 +53,6 @@ man:
 	$(ZIP) $(manTAR)
 	echo "created file" $(manTAR).gz
 	
-
 fonts:
 	rm -fr $(fontsPATH) $(fontsTAR)
 	mkdir $(fontsPATH)
@@ -83,3 +67,33 @@ fonts:
 	$(ZIP) $(fontsTAR)
 	echo "created file" $(fontsTAR).gz
 
+rasall:
+	rm -f  /tmp/ofront-1.4_raspbian_all.tar.gz
+	rm -rf /tmp/rasall
+	mkdir  /tmp/rasall
+	cp /tmp/ofront-1.4_raspbian-Pi3.tar.gz /tmp/rasall
+	cp /tmp/OberonDialogs_raspbian.tar.gz /tmp/rasall
+	cp /tmp/OberonElems_raspbian.tar.gz /tmp/rasall
+	gunzip /tmp/rasall/ofront-1.4_raspbian-Pi3.tar.gz
+	gunzip /tmp/rasall/OberonDialogs_raspbian.tar.gz
+	gunzip /tmp/rasall/OberonElems_raspbian.tar.gz
+	cd /tmp/rasall; tar xf /tmp/rasall/ofront-1.4_raspbian-Pi3.tar
+	cd /tmp/rasall; tar xf /tmp/rasall/OberonDialogs_raspbian.tar
+	cd /tmp/rasall; tar xf /tmp/rasall/OberonElems_raspbian.tar
+	cp -R /tmp/man1  /tmp/rasall/ofront_1.4/
+	cp -R /tmp/fonts /tmp/rasall/ofront_1.4/
+	cp -R /tmp/V4    /tmp/rasall/ofront_1.4/
+	cp /tmp/rasall/OberonDialogs/V4/* /tmp/rasall/ofront_1.4/V4
+	cp /tmp/rasall/OberonDialogs/lib/* /tmp/rasall/ofront_1.4/lib
+	cp /tmp/rasall/OberonDialogs/V4_ofront/* /tmp/rasall/ofront_1.4/V4_ofront
+	rm -R /tmp/rasall/OberonDialogs
+	cp /tmp/rasall/OberonElems/V4/* /tmp/rasall/ofront_1.4/V4
+	cp /tmp/rasall/OberonElems/lib/* /tmp/rasall/ofront_1.4/lib
+	cp /tmp/rasall/OberonElems/V4_ofront/* /tmp/rasall/ofront_1.4/V4_ofront
+	chmod a-w /tmp/rasall/ofront_1.4/V4/*
+	chmod a-w /tmp/rasall/ofront_1.4/V4_ofront/*
+	rm -R /tmp/rasall/OberonElems
+	cd /tmp/rasall; tar cf ofront-1.4_raspbian_all.tar ofront_1.4
+	$(ZIP) /tmp/rasall/ofront-1.4_raspbian_all.tar
+	mv /tmp/rasall/ofront-1.4_raspbian_all.tar.gz /tmp
+	echo "created file /tmp/ofront-1.4_raspbian_all.tar.gz"

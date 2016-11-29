@@ -1,0 +1,125 @@
+# makefile for Elems package of Linz Oberon V4
+#
+# environment variable for setting C compiler options: CCOPT
+
+LIBRARY = libOberonElems.so
+SETPATH = OBERON=.:../share:../../V4_Elems
+OFRONT = $(SETPATH) ofront -s
+LD = cc $(CCOPT) -shared -o $(LIBRARY) -L. -lOberonV4
+ZIP = gzip -f
+TARDIR = /tmp/OberonElems
+TARFILE = /tmp/OberonElems_raspbian.tar
+
+all:    lib 
+
+lib:    oflib  cclib  tar
+
+oflib:
+	ocat Directories.c0 > Directories.c0
+	$(OFRONT) \
+		OberonElems.Mod \
+		Directories.Mod \
+		Bitmaps.Div.Mod \
+		MarkElems.Mod \
+		LinkElems.Mod \
+		OpenElems.Mod \
+		InfoElems.Mod \
+		GUtils.Mod \
+		Elems.Mod \
+		PanelElems.Mod \
+		Panel.Mod \
+		PanelFrames.Mod \
+		AreaButtonElems.Mod \
+		ButtonElems.Mod \
+		CheckBoxElems.Mod \
+		FrameElems.Mod \
+		MultiButtonElems.Mod \
+		RadioButtonElems.Mod \
+		StaticTextElems.Mod \
+		ElemTools.Mod \
+		TextAreaElems.Mod \
+		TextFieldElems.Mod \
+		ColorElems.Mod \
+		ListElems.Mod \
+		BalloonElems.Mod \
+		VersionElems.Mod \
+		IndexElems.Mod \
+		XIn.Mod \
+		ContainerElems.Mod \
+		ElemsUI.Mod
+
+cclib:
+	$(LD) \
+		OberonElems.c \
+		Directories.c \
+		Bitmaps.c \
+		MarkElems.c \
+		LinkElems.c \
+		OpenElems.c \
+		InfoElems.c \
+		GUtils.c \
+		Elems.c \
+		PanelElems.c \
+		Panel.c \
+		PanelFrames.c \
+		AreaButtonElems.c \
+		ButtonElems.c \
+		CheckBoxElems.c \
+		FrameElems.c \
+		MultiButtonElems.c \
+		RadioButtonElems.c \
+		StaticTextElems.c \
+		ElemTools.c \
+		TextAreaElems.c \
+		TextFieldElems.c \
+		ColorElems.c \
+		ListElems.c \
+		BalloonElems.c \
+		VersionElems.c \
+		IndexElems.c \
+		XIn.c \
+		ContainerElems.c \
+		ElemsUI.c
+
+tar:
+	rm -fr $(TARDIR)
+	rm -f $(TARFILE)
+	mkdir $(TARDIR)
+	mkdir $(TARDIR)/V4
+	mkdir $(TARDIR)/lib
+	mkdir $(TARDIR)/V4_ofront
+	chmod -R a+rx $(TARDIR)
+	cp $(LIBRARY) $(TARDIR)/lib
+	cp ../../V4_Elems/* $(TARDIR)/V4
+	cp OberonElems.h \
+		Directories.h Directories.c0 Bitmaps.h MarkElems.h \
+		LinkElems.h OpenElems.h InfoElems.h \
+		GUtils.h Elems.h PanelElems.h \
+		Panel.h PanelFrames.h AreaButtonElems.h \
+		ButtonElems.h CheckBoxElems.h FrameElems.h \
+		MultiButtonElems.h RadioButtonElems.h StaticTextElems.h \
+		ElemTools.h TextAreaElems.h \
+		TextFieldElems.h ColorElems.h ListElems.h \
+		BalloonElems.h VersionElems.h IndexElems.h \
+		XIn.h ContainerElems.h ElemsUI.h \
+		OberonElems.sym \
+		Directories.sym Bitmaps.sym MarkElems.sym \
+		LinkElems.sym OpenElems.sym InfoElems.sym \
+		GUtils.sym Elems.sym PanelElems.sym \
+		Panel.sym PanelFrames.sym AreaButtonElems.sym \
+		ButtonElems.sym CheckBoxElems.sym FrameElems.sym \
+		MultiButtonElems.sym RadioButtonElems.sym StaticTextElems.sym \
+		ElemTools.sym TextAreaElems.sym \
+		TextFieldElems.sym ColorElems.sym ListElems.sym \
+		BalloonElems.sym VersionElems.sym IndexElems.sym \
+		XIn.sym ContainerElems.sym ElemsUI.sym \
+		$(TARDIR)/V4_ofront
+	rm -f $(TARDIR)/V4/*.Bak
+	rm -f $(TARDIR)/V4/.tmp.*
+	rm -f $(TARDIR)/V4/*~
+	cd $(TARDIR)/..; tar cf $(TARFILE) OberonElems
+	$(ZIP) $(TARFILE)
+	echo "created file" $(TARFILE).gz
+
+# System.Execute make -f makeElems 
+# System.Execute make -f makeElems tar
