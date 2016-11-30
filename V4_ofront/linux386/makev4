@@ -1,4 +1,4 @@
-# makefile for V4, fonts, man1
+# makefile for V4, fonts, man1, raspbian_all
 #
 
 RELEASE = 1.4
@@ -91,6 +91,7 @@ rasall:
 	cp /tmp/rasall/OberonElems/lib/* /tmp/rasall/ofront_1.4/lib
 	cp /tmp/rasall/OberonElems/V4_ofront/* /tmp/rasall/ofront_1.4/V4_ofront
 	chmod a-w /tmp/rasall/ofront_1.4/V4/*
+	chmod a-w /tmp/rasall/ofront_1.4/lib/*
 	chmod a-w /tmp/rasall/ofront_1.4/V4_ofront/*
 	rm -R /tmp/rasall/OberonElems
 	cd /tmp/rasall; tar cf ofront-1.4_raspbian_all.tar ofront_1.4

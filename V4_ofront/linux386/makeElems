@@ -8,14 +8,14 @@ OFRONT = $(SETPATH) ofront -s
 LD = cc $(CCOPT) -shared -o $(LIBRARY) -L. -lOberonV4
 ZIP = gzip -f
 TARDIR = /tmp/OberonElems
-TARFILE = /tmp/OberonElems_raspbian.tar
+TARFILE = /tmp/OberonElems_linux386.tar
 
 all:    lib 
 
 lib:    oflib  cclib  tar
 
 oflib:
-	ocat Directories.c0 > Directories.c0
+	cp ../../V4_Elems/Directories.c0 Directories.c0
 	$(OFRONT) \
 		OberonElems.Mod \
 		Directories.Mod \

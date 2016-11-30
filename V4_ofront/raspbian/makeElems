@@ -15,7 +15,7 @@ all:    lib
 lib:    oflib  cclib  tar
 
 oflib:
-	ocat Directories.c0 > Directories.c0
+	cp ../../V4_Elems/Directories.c0 Directories.c0
 	$(OFRONT) \
 		OberonElems.Mod \
 		Directories.Mod \

@@ -212,7 +212,7 @@ tar:
 		FoldElems.h        KeplerElems.h      PopupElems.sym \
 		FoldElems.sym      KeplerElems.sym    Printer.h \
 		Mailer.h	Mailer.sym	Strings.h	Strings.sym \
-		WiringPi.h	WiringPi.sym	MathLX.h	MathLX.sym \
+		MathLX.h	MathLX.sym \
 		Dates.h	Dates.sym	CallMarkStack.c0 \
 		Graphics.h GraphicFrames.h GraphicElems.h GraphicOps.h Draw.h \
 		Rectangles.h Curves.h Splines.h \
@@ -225,7 +225,9 @@ tar:
 	cp Ofront.par  Modules.Mod  Kernel.Mod  Reals.Mod  Unix.Mod \
 		Syntax10.Scn.Fnt $(TARDIR)/$(V4_ofront)
 	cp libWiringPi.so  libGPIO.so  libRPI.so  $(TARDIR)/lib
-	cp WiringPi.Mod GPIO.Mod GPIO.c0 RPI.Mod RPI.c0 \
+	cp WiringPi.Mod WiringPi.h WiringPi.sym \
+		GPIO.Mod GPIO.c0 GPIO.h GPIO.sym \
+		RPI.Mod RPI.c0 RPI.h RPI.sym \
 		My.Tool TestPi.Mod TestPiMain.Mod $(TARDIR)/$(V4_ofront)
 	chmod -R a+x $(TARDIR)/bin $(TARDIR)/lib $(TARDIR)/oberon.bash
 	chmod -R a-w $(TARDIR)/*/*

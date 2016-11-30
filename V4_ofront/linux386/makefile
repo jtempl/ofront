@@ -202,7 +202,7 @@ tar:
 		FoldElems.h        KeplerElems.h      PopupElems.sym \
 		FoldElems.sym      KeplerElems.sym    Printer.h \
 		Mailer.h	Mailer.sym	Strings.h	Strings.sym \
-		MathLX.h	MathLX.sym	CallMarkStack.c0 \
+		MathLX.h	MathLX.sym \
 		Dates.h	Dates.sym	CallMarkStack.c0 \
 		Graphics.h GraphicFrames.h GraphicElems.h GraphicOps.h Draw.h \
 		Rectangles.h Curves.h Splines.h \

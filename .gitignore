@@ -8,3 +8,5 @@
 *.gz
 .tmp.*
 
+/V4_ofront/raspbian/Directories.c0
+/V4_ofront/linux386/Directories.c0
