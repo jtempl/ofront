@@ -364,7 +364,7 @@ MODULE Oberon; (*JG 6.9.90 / 23.9.93*)
 	
 	PROCEDURE ExecShell*(cmd: ARRAY OF CHAR; VAR status: LONGINT; VAR out: Texts.Buffer);
 		VAR i, bufsize, stdin, stdout, stderr, fd, res: LONGINT;
-			boldFnt, italicFnt: Fonts.Font;
+			(*boldFnt, italicFnt: Fonts.Font;*)
 			buf: ARRAY 32000 OF CHAR;
 			ch: CHAR; W: Texts.Writer;
 			
@@ -392,35 +392,50 @@ MODULE Oberon; (*JG 6.9.90 / 23.9.93*)
 				END ;
 			END MapChar;
 			
+			PROCEDURE TryDup(fd: LONGINT): LONGINT;
+				VAR dupFd: LONGINT;
+			BEGIN
+				dupFd := Unix.Dup(fd);
+				IF dupFd = -1 THEN (* rare, collect twice for finalizers *) 
+					Kernel.GC(TRUE); Kernel.GC(TRUE);
+					dupFd := Unix.Dup(fd)
+				END ;
+				RETURN dupFd
+			END TryDup;
+			
+			PROCEDURE CloseDup(fd: LONGINT);
+			BEGIN IF fd >= 0 THEN fd := Unix.Close(fd) END
+			END CloseDup;
+			
 	BEGIN
 		Texts.OpenWriter(W);
-		stdin := Unix.Dup(Unix.stdin);
-		stdout := Unix.Dup(Unix.stdout);
-		stderr := Unix.Dup(Unix.stderr);
+		stdin := TryDup(Unix.stdin);
+		stdout := TryDup(Unix.stdout);
+		stderr := TryDup(Unix.stderr);
+		IF (stdin = -1) OR (stdout = -1) OR (stderr = -1) THEN
+			Texts.WriteString(W, "too many open files"); Texts.WriteLn(W); Texts.Append(Log, W.buf);
+			CloseDup(stdin); CloseDup(stdout); CloseDup(stderr);
+			RETURN
+		END;
 		res := Unix.Close(Unix.stdin);
 		res := Unix.Close(Unix.stdout);
 		res := Unix.Close(Unix.stderr);
 		fd := Unix.Open("/dev/null", Unix.rdwr, {0..31}); (* temporary stdin *)
+		ASSERT(fd = Unix.stdin, 70);
 		fd := Unix.Open("/tmp/System.Execute", Unix.rdwr + Unix.creat + Unix.trunc, {0..31}); (* temporary stdout *)
 		res := Unix.Unlink("/tmp/System.Execute");
+		ASSERT(fd = Unix.stdout, 71);
 		fd := Unix.Dup(fd); (* temporary stderr *)
+		ASSERT(fd = Unix.stderr, 72);
 		status := system(cmd);
-		boldFnt := Fonts.This("Syntax10b.Scn.Fnt");
-		italicFnt := Fonts.This("Syntax10i.Scn.Fnt");
+		(*boldFnt := Fonts.This("Syntax10b.Scn.Fnt");
+		italicFnt := Fonts.This("Syntax10i.Scn.Fnt");*)
 		res := Unix.Lseek(Unix.stdout, 0, 0);
 		bufsize := Unix.ReadBlk(Unix.stdout, buf);
 		IF bufsize > 0 THEN
 			REPEAT i := 0;
 				WHILE i < bufsize DO ch := buf[i];
 					IF (ch = 0DX) OR (ch = 0AX) THEN Texts.WriteLn(W)
-					(*IF (i < bufsize-2) & (buf[i+1] = 08X) THEN	(* -almost- correct (consider buf limit...) *)
-						Texts.SetFont(W, boldFnt);
-						IF ch # "_" THEN Texts.SetFont(W, boldFnt); Texts.Write(W, ch)
-						ELSE Texts.SetFont(W, boldFnt); Texts.Write(W, buf[i+2])
-						END ;
-						Texts.SetFont(W, Fonts.Default);
-						REPEAT INC(i, 2) UNTIL (i+1 >= bufsize) OR (buf[i+1] # 08X);
-					ELS*)
 					ELSIF (ch >= " ") & (ch < 80X) OR (ch = 0DX) OR (ch = 09X) THEN Texts.Write(W, ch)
 					ELSIF ch = ESC THEN Texts.WriteString(W, "ESC")
 					ELSE MapChar(ch, i)
