@@ -203,7 +203,7 @@ MODULE OfrontOPM;	(* RC 6.3.89 / 28.6.89, J.Templ 10.7.89 / 22.7.96  *)
 		s := ""; Args.Get(S, s);
 		NEW(T); Texts.Open(T, s);
 		LogWStr(s);
-		IF T.len = 0 THEN LogWStr(" not found"); LogWLn
+		IF Files.Old(s) = NIL THEN LogWStr(" not found"); LogWLn
 		ELSE
 			Texts.OpenReader(inR, T, 0);
 			LogWStr("  translating");
