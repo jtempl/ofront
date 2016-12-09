@@ -850,6 +850,10 @@ MODULE OfrontOPC;	(* copyright (c) J. Templ 12.7.95 / 3.7.96 *)
 				| OPM.ptrinit: OPM.Write("p")
 				| OPM.include0: OPM.Write("i")
 				| OPM.lineno: OPM.Write("l")
+				| OPM.clopts: OPM.Write("C")
+				| OPM.cldebug: OPM.Write("G")
+				| OPM.cloptimize: OPM.Write("O")
+				| OPM.clverbose: OPM.Write("V")
 				END
 			END
 		END;
@@ -1200,6 +1204,12 @@ MODULE OfrontOPC;	(* copyright (c) J. Templ 12.7.95 / 3.7.96 *)
 		END;
 	END Cmp;
 
+	PROCEDURE WriteChar(ch: CHAR); (* with escape for special printable characters *)
+	BEGIN
+		IF (ch = "\") OR (ch = "?") OR (ch = SingleQuote) OR (ch = Quotes) THEN OPM.Write("\") END ;
+		OPM.Write(ch)
+	END WriteChar;
+	
 	PROCEDURE Case*(caseVal: LONGINT; form: INTEGER);
 	VAR
 		ch: CHAR;
@@ -1209,12 +1219,7 @@ MODULE OfrontOPC;	(* copyright (c) J. Templ 12.7.95 / 3.7.96 *)
 		|	Char :
 					ch := CHR (caseVal);
 					IF (ch >= " ") & (ch <= "~") THEN
-						OPM.Write(SingleQuote);
-						IF (ch = "\") OR (ch = "?") OR (ch = SingleQuote) OR (ch = Quotes) THEN
-							OPM.Write("\"); OPM.Write(ch);
-						ELSE OPM.Write(ch);
-						END;
-						OPM.Write(SingleQuote);
+						OPM.Write(SingleQuote); WriteChar(ch); OPM.Write(SingleQuote);
 					ELSE
 						OPM.WriteString("0x"); OPM.WriteHex (caseVal);
 					END;
@@ -1262,10 +1267,7 @@ MODULE OfrontOPC;	(* copyright (c) J. Templ 12.7.95 / 3.7.96 *)
 		|	Char:
 					ch := CHR(con^.intval);
 					IF (ch >= " ") & (ch <= "~") THEN
-						OPM.Write(SingleQuote);
-						IF (ch = "\") OR (ch = "?") OR (ch = SingleQuote) OR (ch = Quotes) THEN OPM.Write("\") END ;
-						OPM.Write(ch);
-						OPM.Write(SingleQuote)
+						OPM.Write(SingleQuote); WriteChar(ch); OPM.Write(SingleQuote)
 					ELSE
 						OPM.WriteString("0x"); OPM.WriteHex(con^.intval)
 					END
@@ -1295,8 +1297,19 @@ MODULE OfrontOPC;	(* copyright (c) J. Templ 12.7.95 / 3.7.96 *)
 					OPM.Write(Quotes);
 					len := SHORT(con^.intval2) - 1; i := 0;
 					WHILE i < len DO ch := con^.ext^[i];
-						IF (ch = "\") OR (ch = "?") OR (ch = SingleQuote) OR (ch = Quotes) THEN OPM.Write("\") END ;
-						OPM.Write(ch); INC(i)
+						IF (ch >= " ") & (ch <= "~") THEN
+							WriteChar(ch)
+						ELSE
+							OPM.WriteString("\x"); OPM.WriteHex(ORD(ch));
+							(* terminate \x escape sequence without implementation dependency *)
+							IF i + 1 < len THEN (* probably never because special chars are only in single char strings *)
+								CASE con^.ext^[i + 1] OF
+								"0".."9", "a".."f", "A".."F": OPM.Write(Quotes); OPM.Write(Quotes)
+								ELSE
+								END
+							END
+						END;
+						INC(i)
 					END ;
 					OPM.Write(Quotes)
 		|	NilTyp:
