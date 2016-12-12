@@ -386,28 +386,26 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 	END HeapSort;
 
 	PROCEDURE MarkCandidates(n: LONGINT; VAR cand: ARRAY OF LONGINT);
-		VAR chnk, adr, tag, next, lim, lim1, i, ptr, size: LONGINT;
+		VAR chnk, end, adr, tag, next, i, ptr, size: LONGINT;
 	BEGIN
-		chnk := heap; i := 0; lim := cand[n-1];
-		WHILE (chnk # 0 ) & (chnk < lim) DO
+		ASSERT(n > 0);
+		chnk := heap; i := 0;
+		WHILE chnk # 0 DO
+			SYSTEM.GET(chnk + endOff, end);
 			adr := chnk + blkOff;
-			SYSTEM.GET(chnk + endOff, lim1);
-			IF lim < lim1 THEN lim1 := lim END ;
-			WHILE adr < lim1 DO
+			WHILE adr < end DO
 				SYSTEM.GET(adr, tag);
 				IF ODD(tag) THEN (*already marked*)
-					SYSTEM.GET(tag-1, size); INC(adr, size)
+					SYSTEM.GET(tag-1, size); INC(adr, size); ptr := adr + SZL;
+					WHILE cand[i] < ptr DO INC(i); IF i = n THEN RETURN END END ;
 				ELSE
-					SYSTEM.GET(tag, size);
-					ptr := adr + SZL;
-					WHILE cand[i] < ptr DO INC(i) END ;
-					IF i = n THEN RETURN END ;
-					next := adr + size;
-					IF cand[i] < next THEN Mark(ptr) END ;
-					adr := next
-				END
+					SYSTEM.GET(tag, size); ptr := adr + SZL; INC(adr, size);
+					WHILE cand[i] < ptr DO INC(i); IF i = n THEN RETURN END END ;
+					IF cand[i] < adr THEN Mark(ptr) END
+				END ;
+				IF cand[i] >= end THEN (*skip rest of this heap chunk*) adr := end END
 			END ;
-			SYSTEM.GET(chnk, chnk)
+			SYSTEM.GET(chnk + nextChnkOff, chnk)
 		END
 	END MarkCandidates;
 
