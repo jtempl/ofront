@@ -18,7 +18,7 @@ MODULE OfrontCmd;	(* J. Templ 3.2.95 *)
 
 	PROCEDURE Trap(sig, siginfo, sigctx: LONGINT);
 	BEGIN fin();
-		IF sig = 3 THEN Unix.Exit(0)
+		IF sig = 3 THEN Unix.Exit(1)
 		ELSE
 			IF (sig = 4) & (halt() = -15) THEN OPM.LogWStr(" --- ofront: internal error");  OPM.LogWLn END ;
 			Unix.Exit(2)
@@ -56,7 +56,8 @@ MODULE OfrontCmd;	(* J. Templ 3.2.95 *)
 	PROCEDURE Translate*;
 		VAR done: BOOLEAN;
 	BEGIN
-		OPM.OpenPar; (* gclock();   slightly faste rtranslation but may lead to opening "too many files" *)
+		OPM.OpenPar("Ofront (TM) - Oberon-2 to C Translator V1.4", "ofront");
+		(* gclock();   slightly faster translation but may lead to opening "too many files" *)
 		OPT.bytetyp.size := OPM.ByteSize;
 		OPT.sysptrtyp.size := OPM.PointerSize;
 		OPT.chartyp.size := OPM.CharSize;
@@ -68,12 +69,15 @@ MODULE OfrontCmd;	(* J. Templ 3.2.95 *)
 		OPT.sinttyp.size := OPM.SIntSize;
 		OPT.booltyp.size := OPM.BoolSize;
 		LOOP
-			OPM.Init(done);
-			IF ~done THEN EXIT END ;
+			OPM.Init("translating", done);
+			IF ~done THEN
+				IF ~OPM.noerr THEN (* source file not found *) fin(); Unix.Exit(1) END;
+				EXIT (* end of argument vector *)
+			END ;
 			OPM.InitOptions;
 			Kernel.GC(FALSE);
 			Module(done);
-			IF ~done THEN Unix.Exit(1) END
+			IF ~done THEN fin(); Unix.Exit(1) END
 		END
 	END Translate;
 

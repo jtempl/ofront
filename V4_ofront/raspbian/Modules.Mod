@@ -1,6 +1,9 @@
 MODULE Modules;	(* jt 27.2.95, 3.10.2016 *)
 
-	IMPORT SYSTEM, Console, Unix(*for errno*), Kernel;
+	(* shared libraries are named lib_V4_<Modulename>.so by default. (see also CompilerCmd.Mod).
+	For prefixes other than "_V4_" define environment variable OBERON_LIBPREFIX *)
+
+	IMPORT SYSTEM, Console, Unix(*for errno*), Kernel, Args;
 
 	CONST
 		ModNameLen* = 20;
@@ -37,6 +40,7 @@ MODULE Modules;	(* jt 27.2.95, 3.10.2016 *)
 		res*: INTEGER;
 		resMsg*: ARRAY 256 OF CHAR;
 		imported*, importing*: ModuleName;
+		libPrefix*: ARRAY 20 OF CHAR;
 		trace: BOOLEAN; (* log module loading activities on Console *)
 
 	PROCEDURE -UseGNU()
@@ -131,13 +135,11 @@ MODULE Modules;	(* jt 27.2.95, 3.10.2016 *)
 		END
 	END err;
 
-	PROCEDURE Load(name, bodyname: ARRAY OF CHAR; VAR lib: LONGINT; VAR body: ModuleBody;
-								fullName: BOOLEAN);
+	PROCEDURE Load(name, bodyname: ARRAY OF CHAR; VAR lib: LONGINT; VAR body: ModuleBody);
 		VAR libname: ARRAY 256 OF CHAR; rc: LONGINT;
 	BEGIN
-		IF fullName THEN COPY(name, libname)
-		ELSE libname := "lib"; Append(libname, name); Append(libname, ".so")
-		END;
+		libname := "lib"; Append(libname, libPrefix); 
+		Append(libname, name); Append(libname, ".so");
 		IF trace THEN
 			Console.String("  Modules.Load(libname="); Console.String(libname);
 			Console.String(", entry="); Console.String(bodyname);
@@ -155,7 +157,7 @@ MODULE Modules;	(* jt 27.2.95, 3.10.2016 *)
 	END CloseLib;
 
 	PROCEDURE ThisMod* (name: ARRAY OF CHAR): Module;
-		VAR m: Module; bodyname, libname1, libname2: ARRAY 64 OF CHAR;
+		VAR m: Module; bodyname, libname1, libname2: ARRAY 128 OF CHAR;
 			body: ModuleBody; lib, rc: LONGINT;
 	BEGIN
 		m := modules();
@@ -170,24 +172,8 @@ MODULE Modules;	(* jt 27.2.95, 3.10.2016 *)
 			IF body # NIL THEN
 				m := body(); (* no dlclose(lib) because no dlopen *)
 			ELSE
-				Load(name, bodyname, lib, body, FALSE);
-				IF body = NIL THEN
-					GetSubsys1(name, libname1);
-					IF libname1[0] # 0X THEN
-						Load(libname1, bodyname, lib, body, FALSE)
-					END
-				END ;
-				IF body = NIL THEN
-					GetSubsys2(name, libname2);
-					IF libname2[0] # 0X THEN
-						IF (libname2 # libname1) THEN
-							Load(libname2, bodyname, lib, body, FALSE)
-						END
-					END
-				END ;
-				IF body = NIL THEN
-					Load(Kernel.LIB, bodyname, lib, body, FullName(Kernel.LIB))
-				END ;
+				(* module looked up in lib<libPrefix><name>.so *)
+				Load(name, bodyname, lib, body);
 				IF body # NIL THEN
 					Kernel.PushTrapCleaner(CloseLib, lib);
 					m := body();	(* increments reference count of lib *)
@@ -273,5 +259,7 @@ MODULE Modules;	(* jt 27.2.95, 3.10.2016 *)
 	BEGIN trace := FALSE; Console.String("Modules.TraceOff"); Console.Ln
 	END TraceOff;
 
-BEGIN installRefLibHandle()
+BEGIN
+	libPrefix := "_V4_"; Args.GetEnv("OBERON_LIBPREFIX", libPrefix);
+	installRefLibHandle()
 END Modules.

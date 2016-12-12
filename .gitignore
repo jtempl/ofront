@@ -10,3 +10,10 @@
 
 /V4_ofront/raspbian/Directories.c0
 /V4_ofront/linux386/Directories.c0
+/V4_ofront/raspbian/TestDir.Mod
+/V4_ofront/raspbian/TestGC.Mod
+/V4_ofront/raspbian/TestX.Mod
+/V4_ofront/linux386/TestGC.Mod
+/V4_ofront/linux386/TestGC.c0
+/V4_ofront/linux386/TestDir.Mod
+/V4_ofront/linux386/Fonttest.Mod

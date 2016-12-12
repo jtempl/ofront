@@ -22,7 +22,11 @@ MODULE OfrontOPM;	(* RC 6.3.89 / 28.6.89, J.Templ 10.7.89 / 22.7.96  *)
 		extsf* = 9;	(* extension of old symbol file allowed *)
 		mainprog* = 10;	(* translate module body into C main function *)
 		lineno* = 11;	(* emit line numbers rather than text positions in error messages *)
-		defopt* = {inxchk, typchk, ptrinit, ansi, assert};	(* default options *)
+		clopts* = 12;	(* additional options (as a separate string) for C-compiler and linker *)
+		cldebug* = 13;	(* debug option for C-compiler and linker *)
+		cloptimize* = 14;	(* optimze option for C-compiler and linker *)
+		clverbose* = 15;	(* verbose option for Compiler/Linker call *)
+		defopt* = {inxchk, typchk, ptrinit, ansi, assert, cldebug};	(* default options *)
 
 		nilval* = 0;
 (*
@@ -105,6 +109,7 @@ MODULE OfrontOPM;	(* RC 6.3.89 / 28.6.89, J.Templ 10.7.89 / 22.7.96  *)
 		objname*: ARRAY 64 OF CHAR;
 
 		opt*, glbopt*: SET;
+		clOpts*, clOptsGlobal*: ARRAY 256 OF CHAR;
 
 		lasterrpos: LONGINT;
 		inR: Texts.Reader;
@@ -144,18 +149,22 @@ MODULE OfrontOPM;	(* RC 6.3.89 / 28.6.89, J.Templ 10.7.89 / 22.7.96  *)
 	BEGIN i := 1; (* skip - *)
 		WHILE s[i] # 0X DO
 			CASE s[i] OF
-			| "e": opt := opt / {extsf}
-			| "s": opt := opt / {newsf}
-			| "m": opt := opt / {mainprog}
-			| "x": opt := opt / {inxchk}
-			| "v": opt := opt / {vcpp};
-			| "r": opt := opt / {ranchk}
-			| "t": opt := opt / {typchk}
-			| "a": opt := opt / {assert}
-			| "k": opt := opt / {ansi}
-			| "p": opt := opt / {ptrinit}
-			| "i": opt := opt / {include0}
-			| "l": opt := opt / {lineno}
+			| "e": opt := opt + {extsf}
+			| "s": opt := opt + {newsf}
+			| "m": opt := opt + {mainprog}
+			| "x": opt := opt - {inxchk}
+			| "v": opt := opt + {vcpp};
+			| "r": opt := opt + {ranchk}
+			| "t": opt := opt - {typchk}
+			| "a": opt := opt - {assert}
+			| "k": opt := opt - {ansi}
+			| "p": opt := opt - {ptrinit}
+			| "i": opt := opt + {include0}
+			| "l": opt := opt + {lineno}
+			| "C": opt := opt + {clopts}
+			| "G": opt := opt - {cldebug}
+			| "O": opt := opt + {cloptimize}
+			| "V": opt := opt + {clverbose}
 			ELSE LogWStr("  warning: option "); LogW(OptionChar); LogW(s[i]); LogWStr(" ignored"); LogWLn
 			END ;
 			INC(i)
@@ -164,53 +173,83 @@ MODULE OfrontOPM;	(* RC 6.3.89 / 28.6.89, J.Templ 10.7.89 / 22.7.96  *)
 
 	PROCEDURE ^GetProperties;
 
-	PROCEDURE OpenPar*;	(* prepare for a sequence of translations *)
-		VAR s: ARRAY 256 OF CHAR;
+	PROCEDURE AppendOpts(VAR src, dst: ARRAY OF CHAR);
+		VAR i, j: INTEGER; ch: CHAR;
+	BEGIN
+		j := 0; WHILE dst[j] # 0X DO INC(j) END ;
+		IF j > 0 THEN dst[j] := " "; INC(j) END;
+		i := 0; ch := src[0];
+		WHILE ch # 0X DO
+			dst[j] := ch; INC(i); INC(j); ch := src[i]; 
+		END;
+		dst[j] := 0X
+	END AppendOpts;
+
+	PROCEDURE OpenPar*(title, cmd: ARRAY OF CHAR);	(* prepare for a sequence of translations *)
+		VAR s: ARRAY 256 OF CHAR; glbopt0: SET;
 	BEGIN
 		IF Args.argc = 1 THEN stop := TRUE;
 			Console.Ln;
-			Console.String("Ofront (TM) - Oberon-2 to C Translator V1.3"); Console.Ln;
+			Console.String(title); Console.Ln;
 			Console.Ln;
 			Console.String("SYNOPSIS"); Console.Ln;
-				Console.String('  command = "ofront" options {file options}.'); Console.Ln;
+			Console.String('  command = "'); Console.String(cmd); Console.String('" options {file options}.'); Console.Ln;
 			Console.String('  options = ["-" {option} ].'); Console.Ln;
-			Console.String('  option  = "m" | "s" | "e" | "i" | "l" | "k" | "r" | "x" | "a" | "p" | "t".'); Console.Ln;
+			Console.String('  option  = "m" | "s" | "e" | "i" | "l" | "k" | "r" | "x" | "a" | "p" | "t"'); 
+			IF cmd = "ocl" THEN Console.String(' "V" | "G" | "O" | "C"') END ;
+			Console.String(".");
+			Console.Ln;
 			Console.Ln;
 		ELSE
 			GetProperties;
-			glbopt := defopt; S := 1; s := "";
+			glbopt := defopt; clOptsGlobal := "";
+			S := 1; s := "";
 			Args.Get(1, s); stop := FALSE;
-			WHILE s[0] = OptionChar DO ScanOptions(s, glbopt); INC(S); s := ""; Args.Get(S, s) END
+			WHILE s[0] = OptionChar DO (* undocumented feature: multiple global option strings are supported *)
+				glbopt0 := {}; ScanOptions(s, glbopt); ScanOptions(s, glbopt0);
+				INC(S); s := ""; Args.Get(S, s);
+				IF clopts IN glbopt0 THEN AppendOpts(s, clOptsGlobal);
+					INC(S); s := ""; Args.Get(S, s)
+				END
+			END
 		END
 	END OpenPar;
 
 	PROCEDURE InitOptions*;	(* get the options for one translation *)
-		VAR s: ARRAY 256 OF CHAR;
+		VAR s: ARRAY 256 OF CHAR; opt0: SET;
 	BEGIN
-		opt := glbopt; s := ""; Args.Get(S, s);
-		WHILE s[0] = OptionChar DO ScanOptions(s, opt); INC(S); s := ""; Args.Get(S, s) END ;
+		opt := glbopt; COPY(clOptsGlobal, clOpts);
+		s := ""; Args.Get(S, s);
+		WHILE s[0] = OptionChar DO
+			opt0 := {}; ScanOptions(s, opt); ScanOptions(s, opt0);
+			INC(S); s := ""; Args.Get(S, s);
+			IF clopts IN opt0 THEN AppendOpts(s, clOpts); INC(S); s := ""; Args.Get(S, s)
+			ELSIF ~(clopts IN glbopt) THEN clOpts := ""
+			END
+		END ;
 		IF lineno IN opt THEN useLineNo := TRUE; curpos := 256; errpos := curpos; lasterrpos := curpos - 10
 		ELSE useLineNo := FALSE;
 		END
 	END InitOptions;
 
-	PROCEDURE Init*(VAR done: BOOLEAN);	(* get the source for one translation *)
+	(* get the source for one translation; msg is "translating" or "compiling" *)
+	PROCEDURE Init*(msg: ARRAY OF CHAR; VAR done: BOOLEAN);
 		VAR T: Texts.Text; beg, end, time: LONGINT;
 			s: ARRAY 256 OF CHAR;
 	BEGIN
 		done := FALSE; curpos := 0;
-		IF stop OR (S >= Args.argc) THEN RETURN END ;
+		IF stop OR (S >= Args.argc) THEN noerr := TRUE; RETURN END ;
 		s := ""; Args.Get(S, s);
 		NEW(T); Texts.Open(T, s);
 		LogWStr(s);
-		IF Files.Old(s) = NIL THEN LogWStr(" not found"); LogWLn
+		IF Files.Old(s) = NIL THEN LogWStr(" not found"); LogWLn; noerr := FALSE
 		ELSE
 			Texts.OpenReader(inR, T, 0);
-			LogWStr("  translating");
-			done := TRUE
+			LogWStr("  "); LogWStr(msg);
+			done := TRUE; noerr := TRUE
 		END ;
 		INC(S);
-		level := 0; noerr := TRUE; errpos := curpos; lasterrpos := curpos -10
+		level := 0; errpos := curpos; lasterrpos := curpos -10
 	END Init;
 
 	(* ------------------------- read source text -------------------------*)
@@ -588,14 +627,15 @@ MODULE OfrontOPM;	(* RC 6.3.89 / 28.6.89, J.Templ 10.7.89 / 22.7.96  *)
 		IF noerr THEN LogWStr("    "); LogWNum(Files.Pos(R[BodyFile]), 0) END ;
 		IF noerr THEN
 			IF modName = "SYSTEM" THEN
-				IF ~(mainprog IN opt) THEN Files.Register(BFile) END
+				IF ~(mainprog IN opt) THEN Files.Register(BFile); Files.Close(BFile) END
 			ELSIF ~(mainprog IN opt) THEN
 				Append(R[HeaderInclude], HFile);
-				Files.Register(HIFile); Files.Register(BFile)
+				Files.Register(HIFile); Files.Register(BFile);
+				Files.Close(HIFile); Files.Close(BFile)
 			ELSE
 				MakeFileName(modName, FName, HFext); Files.Delete(FName, res);
 				MakeFileName(modName, FName, SFext); Files.Delete(FName, res);
-				Files.Register(BFile)
+				Files.Register(BFile); Files.Close(BFile)
 			END
 		END ;
 		HFile := NIL; BFile := NIL; HIFile := NIL; newSFile := NIL; oldSFile := NIL;

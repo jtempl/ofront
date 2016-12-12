@@ -1,30 +1,32 @@
-.TH OFRONT 1
+.TH OCL 1
 .SH NAME
-ofront - Oberon-2 to C Translator
+ocl - Oberon-2 Compiler based on Ofront
 .SH SYNOPSIS (EBNF)
-command = "ofront" options {path options}.
+command = "ocl" options {path options}.
 .ti +0
 options = ["-" {option} ].
 .ti +0
-option = "m" | "s" | "e" | "i" | "r" | "x" | "a" | "p" |"t".
+option = "m" | "s" | "e" | "i" | "r" | "x" | "a" | "p" |"t" | "V" | "G" | "O" | "C".
 .SH DESCRIPTION
-ofront is a tool that translates Oberon-2 programs into semantically equivalent
-C programs. Full error analysis is performed on the Oberon input program and in 
-case of no errors, up to three files are generated as output:
+ocl is a tool that compiles Oberon-2 modules by using Ofront and the system's C compiler and linkage editor.
+Full error analysis is performed on the Oberon input program and in 
+case of no errors, up to four files are generated as output:
 .ti +4
 1. an Oberon symbol file (suffix .sym)
 .ti +4
 2. a C header file (suffix .h)
 .ti +4
 3. a C body file (suffix .c).
+.ti +4
+4. a shared library (suffix .so) or, if option -m is specified, an executable main program.
 .ti +0
-The C header and body files follow widely used C programming conventions. Ofront is also capable of generating main programs by translating the body of a module into a C main function (see option -m). In this case only the body file is generated. Ofront does not invoke the C compiler or linkage editor. This may be done in separate shell scripts or make files and is inherently dependent on the C compiler and linkage editor being used. Ofront accepts an arbitrary number of input file parameters. Every file is expected to contain one Oberon module. Oberon source files typically (but not necessarily) have the file name extension .Mod. Options affecting the translation process may be specified immediately after the command name or after a file name. The former apply to all files, the latter only to the preceeding one; thus, the order in which file names and options are specified is important. Specifying an option twice has no additional effect. Note that options must not contain whitespace.
+The C header and body files follow widely used C programming conventions. ocl is also capable of generating main programs by translating the body of a module into a C main function (see option -m). In this case only the body file is generated. ocl invokes the C compiler and linkage editor by invoking the shell script cl.bash. ocl accepts an arbitrary number of input file parameters. Every file is expected to contain one Oberon module. Oberon source files typically (but not necessarily) have the file name extension .Mod. Options affecting the translation process may be specified immediately after the command name or after a file name. The former apply to all files, the latter only to the preceeding one; thus, the order in which file names and options are specified is important. Specifying an option twice has no additional effect. Note that options must not contain whitespace.
 .SH OPTIONS
 .TP
 -m
 generate a main module (default off)
 .ti +0
-This option signals Ofront that the module body should be translated into a C main function, which is the entry point of an application. Every application consists of exactly one main module. Modules which are intended for a library should never be compiled with option m. 
+This option signals ocl that the module body should be translated into a C main function, which is the entry point of an application. Every application consists of exactly one main module. Modules which are intended for a library should never be compiled with option m. 
 .TP
 -s
 allow changing the symbol file (default off)
@@ -65,34 +67,63 @@ Specifying this option turns off automatic pointer initialization. Note that Obe
 check type guards (default on)
 .ti +0
 Specifying this option turns off run-time type guard checking. Since type guard checks are very efficient anyway and undetected type guard failures can easily destroy memory integrity, we recommend using this option only in very rare cases such as low-level modules where every machine cycle counts. 
-.SH EXAMPLE
-% ofront -sr M1.Mod M2.Mod M3.Mod -m
+.TP
+-V
+verbose output for calling C-compiler and linker (default off)
 .ti +0
-translates three modules with generation of new symbol files being allowed (option s), range checking switched on (option r) and treating module M3 as a main program.
+Specifying this option turns on verbose output when calling the C-compiler and linker. The call itself as well as the processing steps are output. If not specified only error messages will be displayed.
+.TP
+-G
+generate debug symbols (default on)
+.ti +0
+Specifying this option turns off generating debug symbols in the C-compiler step..
+.TP
+-O
+turn on code optimizations (default off)
+.ti +0
+Specifying this option turns on the optimizing option in the C-compiler step.
+.TP
+-C
+pass additional C-compiler and linker options (default none)
+.ti +0
+Specifying this option allows for passing additional options such as include directories or required libraries to the C-compiler and linker step. The options are expected to be given as a single quoted string following the options.
+.SH EXAMPLE
+% ocl -sr M1.Mod M2.Mod M3.Mod -m
+.ti +0
+compiles three modules with generation of new symbol files being allowed (option s), range checking switched on (option r) and treating module M3 as a main program.
 .SH ENVIRONMENT
 .TP
 OBERON
-a colon-separated list of directories in which ofront searches for input files.
+a colon-separated list of directories in which ocl searches for input files.
 If OBERON is not defined, files are only searched in the current working directory.
-Note that shell specific characters like "~" are not supported by ofront.
+Note that shell specific characters like "~" are not supported by ocl.
 The environment variable OBERON may be set e.g. under the bash shell by
 .ti +0
 % export OBERON=.:Mylib:OberonLib
+.TP
+OBERON_LIBPREFIX
+By default, ocl names the resulting shared object for a module <M> lib_V4_<M>.so and defines dependencies to
+other modules by using the same naming convention. If a library prefix other than "_V4_" is required,
+the environment variable OBERON_LIBPREFIX must be defined. This, however, requires to recompile all modules
+in order to use a consistent library naming convention.
+.TP
+cl.bash
+ocl calls this script for invoking the system's C-compiler and linkage editor.
 .SH FILES
 .TP
 temporary files
-ofront allocates temporary files prefixed with '.tmp.' and the process id in the current working directory.
-If the ofront process terminates abnormally, temporary files may survive and
-should be explicitly deleted by the user. Do not delete .tmp.* files while ofront is using them.
+ocl allocates temporary files prefixed with '.tmp.' and the process id in the current working directory.
+If the ocl process terminates abnormally, temporary files may survive and
+should be explicitly deleted by the user. Do not delete .tmp.* files while ocl is using them.
 .SH DOCUMENTATION
-For more details about ofront please refer to the Ofront User Guide, which is provided as
+For more details about Ofront please refer to the Ofront User Guide, which is provided as
 Oberon text file (OfrontUser.Text).
 .SH COPYRIGHT
 Copyright 1995 by Josef Templ.
 
 Transferred to the Free BSD License in 2012.
 .SH AUTHORS
-Design and implementation of ofront is due to Josef Templ. Comments or suggestions may be sent to Josef.Templ@gmail.com. ofront has been based in part on Regis Crelier's PhD thesis and Stefan Gehring's diploma thesis, both at ETH Zurich, Institute for Computer Systems.
+Design and implementation of Ofront is due to Josef Templ. Comments or suggestions may be sent to Josef.Templ@gmail.com. Ofront has been based in part on Regis Crelier's PhD thesis and Stefan Gehring's diploma thesis, both at ETH Zurich, Institute for Computer Systems.
 
-Project ofront is hosted on https://github.com/jtempl/ofront.
+Project Ofront is hosted on https://github.com/jtempl/ofront.
 

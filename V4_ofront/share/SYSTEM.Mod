@@ -444,7 +444,7 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 		END
 	END FINALL;
 
-	PROCEDURE MarkStack0(sp: LONGINT);
+	PROCEDURE MarkStack0*(sp: LONGINT); (* exported in order to prevent inlining by C optimizers *)
 		VAR
 			inc, nofcand: LONGINT;
 			p, stack0, ptr: LONGINT;
@@ -467,7 +467,7 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 		IF nofcand > 0 THEN HeapSort(nofcand, cand); MarkCandidates(nofcand, cand) END
 	END MarkStack0;
 
-	PROCEDURE MarkStack();
+	PROCEDURE MarkStack*(); (* exported in order to prevent inlining by C optimizers *)
 		VAR x: LONGINT;
 	BEGIN
 		MarkStack0(SYSTEM.ADR(x))

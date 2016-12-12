@@ -178,7 +178,7 @@ MODULE Kernel;
   PROCEDURE -Error(msg: ARRAY OF CHAR; len: INTEGER)
     "write(1/*stdout*/, msg, len); char ch = 0xa; write(1, &ch, 1)";
 
-  PROCEDURE JmpBufCheck; (* check for inconsistent usage of sigjmp_buf *)
+  PROCEDURE JmpBufCheck; (* check for inconsistent usage of sigjmp_buf; better avoid Unix_JmpBuf *)
     VAR x, y: LONGINT;
   BEGIN
     x := SizeofUnixJmpBuf();

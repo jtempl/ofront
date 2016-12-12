@@ -338,6 +338,12 @@ TYPE
   PROCEDURE -Getegid*(): LONGINT
     "getegid()";
 
+  PROCEDURE -Setuid*(uid: LONGINT): LONGINT
+    "setuid(uid)";
+
+  PROCEDURE -Seteuid*(euid: LONGINT): LONGINT
+    "seteuid(euid)";
+
   PROCEDURE -Unlink*(name: Name): LONGINT
     "unlink(name)";
 

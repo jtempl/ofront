@@ -202,9 +202,18 @@ SYSTEM_PTR SYSTEM_NEWARR(typ, elemsz, elemalgn, nofdim, nofdyn, va_alist)
 	return x;
 }
 
-static void SYSTEM_MarkStack(void);
+/* registers must be stored on the stack before doing garbage collection on the stack.
+Pretty portable version: uses jump buffer for saving processor state incl. registers on the stack.
+*/
 
-#include "CallMarkStack.c0"
+#include <setjmp.h>
+extern void SYSTEM_MarkStack (void);
+
+static void SYSTEM_callMarkStack(void) {
+	jmp_buf env;
+	setjmp(env);
+	SYSTEM_MarkStack();
+}
 
 /* ----------- end of SYSTEM.co ------------- */
 

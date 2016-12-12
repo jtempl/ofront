@@ -326,7 +326,7 @@ MODULE CmdlnTexts;	(** CAS/HM 23.9.93 -- interface based on Texts by JG/NW 6.12.
 	PROCEDURE OpenReader* (VAR R: Reader; T: Text; pos: LONGINT);
 		VAR u: Run;
 	BEGIN
-		IF pos >= T.len THEN pos := T.len END;
+		IF pos >= T.len THEN pos := T.len ELSIF pos < 0 THEN pos := 0 END;
 		Find(T, pos, u, R.org, R.off); R.run := u; R.eot := FALSE;
 		IF u IS Piece THEN
 			Files.Set(R.rider, u(Piece).file, u(Piece).org + R.off)
