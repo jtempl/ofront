@@ -18,7 +18,7 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 		CmdNameLen = 24;
 		SZL = SIZE(LONGINT);
 		Unit = 4*SZL;	(* smallest possible heap block *)
-		nofLists = 9;	(* number of free_lists *)
+		nofLists = 9;	(* number of freeList entries excluding sentinel *)
 		heapSize0 = 8000*Unit;	(* startup heap size *)
 
 	(* all blocks look the same:
@@ -87,7 +87,7 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 
 		(* extensible heap *)
 		heap,	(* the sorted list of heap chunks *)
-		heapNegMin, heapNegMax, heapPosMin, heapPosMax, (* filter for pointers; used for stack collection *)
+		heapMin, heapMax, (* filter for pointers; used for stack collection *)
 		heapsize*: LONGINT;	(* the sum of all heap chunk sizes *)
 
 		(* finalization candidates *)
@@ -102,6 +102,8 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 
 	PROCEDURE -malloc(size: LONGINT): LONGINT	"(LONGINT)malloc(size)";
 	PROCEDURE -free(ptr: LONGINT)	"free((void*)ptr)";
+	PROCEDURE -uLT(x, y: LONGINT): BOOLEAN	"((unsigned long)x < (unsigned long)y)";
+	PROCEDURE -uLE(x, y: LONGINT): BOOLEAN	"((unsigned long)x <= (unsigned long)y)";
 	PROCEDURE -Lock()	"Lock";
 	PROCEDURE -Unlock()	"Unlock";
 	PROCEDURE -Mainfrm(): LONGINT	"SYSTEM_mainfrm";
@@ -149,13 +151,8 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 			SYSTEM.PUT(blk + sntlOff, NoPtrSntl);
 			SYSTEM.PUT(blk + nextOff, bigBlocks); bigBlocks := blk; (* prepend block to list of big blocks *)
 			INC(heapsize, blksz);
-			IF chnk > 0 THEN
-				IF chnk < heapPosMin THEN heapPosMin := blk + SZL END ;
-				IF end > heapPosMax THEN heapPosMax := end END
-			ELSE (*chnk < 0*)
-				IF chnk < heapNegMin THEN heapNegMin := blk + SZL END ;
-				IF end > heapNegMax THEN heapNegMax := end END
-			END
+			IF uLT(blk + SZL, heapMin) THEN heapMin := blk + SZL END ;
+			IF uLT(heapMax, end) THEN heapMax := end END
 		END ;
 		RETURN chnk
 	END NewChunk;
@@ -163,17 +160,17 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 	PROCEDURE ExtendHeap(blksz: LONGINT);
 		VAR size, chnk, j, next: LONGINT;
 	BEGIN
-		IF blksz > 10000*Unit THEN size := blksz
+		IF uLT(10000*Unit, blksz) THEN size := blksz
 		ELSE size := 10000*Unit	(* additional heuristics *)
 		END ;
 		chnk := NewChunk(size);
 		IF chnk # 0 THEN 
 			(*sorted insertion*)
-			IF chnk < heap THEN
+			IF uLT(chnk, heap) THEN
 				SYSTEM.PUT(chnk, heap); heap := chnk
 			ELSE
 				j := heap; SYSTEM.GET(j, next);
-				WHILE (next # 0) & (chnk > next) DO j := next; SYSTEM.GET(j, next) END ;
+				WHILE (next # 0) & uLT(next, chnk) DO j := next; SYSTEM.GET(j, next) END ;
 				SYSTEM.PUT(chnk, next); SYSTEM.PUT(j, chnk)
 			END
 		END
@@ -188,10 +185,10 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 		SYSTEM.GET(tag, blksz);
 		ASSERT(blksz MOD Unit = 0);
 		i0 := blksz DIV Unit; i := i0;
-		IF i < nofLists THEN adr := freeList[i];
+		IF uLT(i, nofLists) THEN adr := freeList[i];
 			WHILE adr = 0 DO INC(i); adr := freeList[i] END
 		END ;
-		IF i < nofLists THEN (* unlink *)
+		IF uLT(i, nofLists) THEN (* unlink from freelist[i] *)
 			SYSTEM.GET(adr + nextOff, next);
 			freeList[i] := next;
 			IF i # i0 THEN (* split *)
@@ -204,14 +201,14 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 				freeList[di] := adr;
 				INC(adr, restsize)
 			END
-		ELSE
+		ELSE (* search in bigBlocks *)
 			adr := bigBlocks; prev := 0;
 			LOOP
-				IF adr = 0 THEN
+				IF adr = 0 THEN (* nothing free *)
 					IF firstTry THEN
 						GC(TRUE); INC(blksz, Unit);
-						IF (heapsize - allocated - blksz) * 4 < heapsize THEN
-							(* heap is still almost full; expand to avoid thrashing *)
+						IF uLT(heapsize - allocated, blksz) OR uLT((heapsize - allocated - blksz) * 4, heapsize) THEN
+							(* heap would still be more than 3/4 full; expand to avoid thrashing *)
 							ExtendHeap((allocated + blksz) DIV (3*Unit) * (4*Unit) - heapsize)
 						END ;
 						firstTry := FALSE; new := NEWREC(tag); firstTry := TRUE;
@@ -227,21 +224,21 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 					END
 				END ;
 				SYSTEM.GET(adr+sizeOff, t);
-				IF t >= blksz THEN EXIT END ;
+				IF uLE(blksz, t) THEN EXIT END ;
 				prev := adr; SYSTEM.GET(adr + nextOff, adr)
 			END ;
 			restsize := t - blksz; end := adr + restsize;
 			SYSTEM.PUT(end + sizeOff, blksz);
 			SYSTEM.PUT(end + sntlOff, NoPtrSntl);
 			SYSTEM.PUT(end, end + sizeOff);
-			IF restsize > nofLists * Unit THEN (*resize*)
+			IF uLT(nofLists * Unit, restsize) THEN (*resize*)
 				SYSTEM.PUT(adr + sizeOff, restsize)
 			ELSE (*unlink*)
 				SYSTEM.GET(adr + nextOff, next);
 				IF prev = 0 THEN bigBlocks := next
 				ELSE SYSTEM.PUT(prev + nextOff, next);
 				END ;
-				IF restsize > 0 THEN (*move*)
+				IF restsize # 0 THEN (*move*)
 					di := restsize DIV Unit;
 					SYSTEM.PUT(adr + sizeOff, restsize);
 					SYSTEM.PUT(adr + nextOff, freeList[di]);
@@ -251,7 +248,7 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 			INC(adr, restsize)
 		END ;
 		i := adr + 4*SZL; end := adr + blksz;
-		WHILE i < end DO	(*deliberately unrolled*)
+		WHILE uLT(i, end) DO	(*deliberately unrolled*)
 			SYSTEM.PUT(i, LONG(LONG(0)));
 			SYSTEM.PUT(i + SZL, LONG(LONG(0)));
 			SYSTEM.PUT(i + 2*SZL, LONG(LONG(0)));
@@ -329,16 +326,16 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 		freesize := 0; allocated := 0; chnk := heap;
 		WHILE chnk # 0 DO
 			adr := chnk + blkOff; SYSTEM.GET(chnk + endOff, end);
-			WHILE adr < end DO
+			WHILE uLT(adr, end) DO
 				SYSTEM.GET(adr, tag);
 				IF ODD(tag) THEN	(*marked*)
-					IF freesize > 0 THEN
+					IF freesize # 0 THEN
 						start := adr - freesize;
 						SYSTEM.PUT(start, start+SZL);
 						SYSTEM.PUT(start+sizeOff, freesize);
 						SYSTEM.PUT(start+sntlOff, NoPtrSntl);
 						i := freesize DIV Unit; freesize := 0;
-						IF i < nofLists THEN SYSTEM.PUT(start + nextOff, freeList[i]); freeList[i] := start
+						IF uLT(i, nofLists) THEN SYSTEM.PUT(start + nextOff, freeList[i]); freeList[i] := start
 						ELSE SYSTEM.PUT(start + nextOff, bigBlocks); bigBlocks := start
 						END
 					END ;
@@ -353,13 +350,13 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 					INC(adr, size)
 				END
 			END ;
-			IF freesize > 0 THEN (*collect last block*)
+			IF freesize # 0 THEN (*collect last block*)
 				start := adr - freesize;
 				SYSTEM.PUT(start, start+SZL);
 				SYSTEM.PUT(start+sizeOff, freesize);
 				SYSTEM.PUT(start+sntlOff, NoPtrSntl);
 				i := freesize DIV Unit; freesize := 0;
-				IF i < nofLists THEN SYSTEM.PUT(start + nextOff, freeList[i]); freeList[i] := start
+				IF uLT(i, nofLists) THEN SYSTEM.PUT(start + nextOff, freeList[i]); freeList[i] := start
 				ELSE SYSTEM.PUT(start + nextOff, bigBlocks); bigBlocks := start
 				END
 			END ;
@@ -371,8 +368,8 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 		VAR i, j, x: LONGINT;
 	BEGIN j := l; x := a[j];
 		LOOP i := j; j := 2*j + 1;
-			IF (j < r) & (a[j] < a[j+1]) THEN INC(j) END;
-			IF (j > r) OR (a[j] <= x) THEN EXIT END;
+			IF (j < r) & uLT(a[j], a[j+1]) THEN INC(j) END;
+			IF (j > r) OR uLE(a[j], x) THEN EXIT END;
 			a[i] := a[j]
 		END;
 		a[i] := x
@@ -393,17 +390,17 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 		WHILE chnk # 0 DO
 			SYSTEM.GET(chnk + endOff, end);
 			adr := chnk + blkOff;
-			WHILE adr < end DO
+			WHILE uLT(adr, end) DO
 				SYSTEM.GET(adr, tag);
 				IF ODD(tag) THEN (*already marked*)
 					SYSTEM.GET(tag-1, size); INC(adr, size); ptr := adr + SZL;
-					WHILE cand[i] < ptr DO INC(i); IF i = n THEN RETURN END END ;
+					WHILE uLT(cand[i], ptr) DO INC(i); IF i = n THEN RETURN END END ;
 				ELSE
 					SYSTEM.GET(tag, size); ptr := adr + SZL; INC(adr, size);
-					WHILE cand[i] < ptr DO INC(i); IF i = n THEN RETURN END END ;
-					IF cand[i] < adr THEN Mark(ptr) END
+					WHILE uLT(cand[i], ptr) DO INC(i); IF i = n THEN RETURN END END ;
+					IF uLT(cand[i], adr) THEN Mark(ptr) END
 				END ;
-				IF cand[i] >= end THEN (*skip rest of this heap chunk*) adr := end END
+				IF uLE(end, cand[i]) THEN (*skip rest of this heap chunk*) adr := end END
 			END ;
 			SYSTEM.GET(chnk + nextChnkOff, chnk)
 		END
@@ -454,11 +451,10 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 		nofcand := 0; stack0 := Mainfrm();
 		(* check for minimum alignment of pointers *)
 		inc := SYSTEM.ADR(align.p) - SYSTEM.ADR(align);
-		IF sp > stack0 THEN inc := -inc END ;
+		IF uLT(stack0, sp) THEN inc := -inc END ;
 		WHILE sp # stack0 DO
 			SYSTEM.GET(sp, p);
-			IF (p > 0) & (p >= heapPosMin) & (p < heapPosMax)
-			OR (p < 0) & (p >= heapNegMin) & (p < heapNegMax) THEN
+			IF uLE(heapMin, p) & uLT(p, heapMax) THEN
 				IF nofcand = LEN(cand) THEN HeapSort(nofcand, cand); MarkCandidates(nofcand, cand); nofcand := 0 END ;
 				cand[nofcand] := p; INC(nofcand)
 			END ;
@@ -503,10 +499,10 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 	PROCEDURE InitHeap;	(* initialized before body to enable NEW, SYSTEM.NEW *)
 	BEGIN
 		heap := 0; heapsize := 0; allocated := 0; gclock := 0;
-		heapPosMin := MAX(LONGINT); heapPosMax := 0; heapNegMin := 0; heapNegMax := MIN(LONGINT);
+		heapMin := 0FFFFFFFFH; heapMax := 0;
 		heap := NewChunk(heapSize0);
 		SYSTEM.PUT(heap + nextChnkOff, LONG(LONG(0)));
-		firstTry := TRUE; freeList[nofLists] := 1
+		firstTry := TRUE; freeList[nofLists] := 1 (* sentinel, # 0 *)
 	END InitHeap;
 
 END SYSTEM.
