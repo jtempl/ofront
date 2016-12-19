@@ -12,18 +12,48 @@ static void* periMem;	//BCM2835 peripherals memory
  
 static int mapPeripherals(long periBase) {
 	int mem_fd; 	// file descriptor to peripherals memory virtual file '/dev/mem'
+	long euid;
 	if (periMem) { // already open
 		return 0;
 	};
-	if ((mem_fd = open("/dev/mem", O_RDWR | O_SYNC) ) < 0) {
-		printf("Failed to open /dev/mem, check permissions.\n");
+	euid = geteuid();
+	if (euid == -1) {
+		perror("RPI.Open: geteuid"); //probably never
 		return -1;
 	}
+	if (euid != 0) {
+		int res = seteuid(0); //temporarily set effective user id to root; requires: user id == root
+		if (res == -1) {
+			perror("RPI.Open: seteuid(root)");
+			return -1;
+		}
+	}
+	if ((mem_fd = open("/dev/mem", O_RDWR | O_SYNC) ) == -1) {
+		//printf("RPI.Open: failed to open '/dev/mem', check permissions.\n");
+		perror("RPI.Open: open");
+		if (euid != 0) {
+			if (seteuid(euid) == -1) {
+				perror("RPI.Open: seteuid(euid)");
+				return -1;
+			}
+		}
+		return -1;
+	}
+	if (euid != 0) {
+		if (seteuid(euid) == -1) {
+			perror("RPI.Open: seteuid(euid)");
+			return -1;
+		}
+	}
 	periMem = mmap(NULL, PERI_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, mem_fd, periBase);
-	close(mem_fd);
 	if (periMem == MAP_FAILED) {
-		perror("mmap");
+		perror("RPI.Open: mmap");
 		periMem = NULL;
+		close(mem_fd);
+		return -1;
+	}
+	if (close(mem_fd) == -1) {
+		perror("RPI.Open: close"); //probably never
 		return -1;
 	}
 	return 0;
@@ -31,7 +61,10 @@ static int mapPeripherals(long periBase) {
 
 static void unmapPeripherals() {
 	if (periMem) {
-		munmap(periMem, PERI_SIZE);
-		periMem = NULL;
+		if (munmap(periMem, PERI_SIZE) == 0) {
+			periMem = NULL;
+		} else {
+			perror("RPI.Close: munmap"); // should never occur
+		}
 	}
 }
