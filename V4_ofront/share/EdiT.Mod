@@ -481,7 +481,8 @@ MODULE EdiT; (* gri 5.9.90, jt 10.9.90/07.10.93 *)
 	END Show;
 
 	PROCEDURE Grep*;	(* EdiT.Grep pattern {filename} *)
-		VAR S: Texts.Scanner; R: Texts.Reader; ch: CHAR; T: Texts.Text; beg, end, time, pos: LONGINT;
+		VAR S: Texts.Scanner; R: Texts.Reader; ch: CHAR; n: INTEGER;
+			T: Texts.Text; beg, end, time, pos: LONGINT;
 	BEGIN search.len := 0;
 		IF Oberon.Par.vwr.dsc = Oberon.Par.frame THEN (* in menu; use selection beg-end *)
 			Oberon.GetSelection(T, beg, end, time);
@@ -514,11 +515,15 @@ MODULE EdiT; (* gri 5.9.90, jt 10.9.90/07.10.93 *)
 		IF (search.len > 0) & (S.class IN {Texts.Name, Texts.String}) THEN
 			CompileDk;
 			WHILE S.class IN {Texts.Name, Texts.String} DO
-				Texts.WriteString(W, S.s); Texts.WriteLn(W); Texts.Append(Oberon.Log, W.buf);
 				T := TextFrames.Text(S.s);
-				pos := KMPsearch(T, 0);
-				WHILE pos >= 0 DO Texts.WriteInt(W, pos, 8); Texts.WriteLn(W); pos := KMPsearch(T, pos) END ;
-				Texts.Append(Oberon.Log, W.buf);
+				n := 0; pos := KMPsearch(T, 0);
+				WHILE pos >= 0 DO
+					IF n = 0 THEN Texts.WriteString(W, S.s) END ;
+					IF n MOD 4 = 0 THEN Texts.WriteLn(W) END ;
+					Texts.WriteInt(W, pos, 10);
+					INC(n); pos := KMPsearch(T, pos)
+				END ;
+				IF n > 0 THEN Texts.WriteLn(W); Texts.Append(Oberon.Log, W.buf) END ;
 				Texts.Scan(S)
 			END
 		END
