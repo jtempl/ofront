@@ -1,5 +1,5 @@
 (*
-*	The Ofront runtime system, Version 1.3
+*	The Ofront runtime system, Version 1.4
 *
 *	Copyright (c) Software Templ, 1994-2016
 *
@@ -207,17 +207,15 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 				IF adr = 0 THEN (* nothing free *)
 					IF firstTry THEN
 						GC(TRUE); INC(blksz, Unit);
-						IF uLT(heapsize - allocated, blksz) OR uLT((heapsize - allocated - blksz) * 4, heapsize) THEN
-							(* heap would still be more than 3/4 full; expand to avoid thrashing *)
-							ExtendHeap((allocated + blksz) DIV (3*Unit) * (4*Unit) - heapsize)
+						(* anti-thrashing heuristics: ensure 1/4 of the heap will not be allocated *)
+						t := (allocated + blksz) DIV (3*Unit) * (4*Unit); (* minimum required new heapsize *)
+						IF uLT(heapsize, t) THEN ExtendHeap(t - heapsize) END ;
+						firstTry := FALSE; new := NEWREC(tag);
+						IF new = NIL THEN (* fragmentation prevented allocation, heap is 1/4 free *)
+							ExtendHeap(blksz);
+							new := NEWREC(tag)	(* will find a free block if heap has been expanded successfully *)
 						END ;
-						firstTry := FALSE; new := NEWREC(tag); firstTry := TRUE;
-						IF new = NIL THEN
-							(* depending on the fragmentation, the heap may not have been extended by
-								the anti-thrashing heuristics above *)
-							ExtendHeap((allocated + blksz) DIV (3*Unit) * (4*Unit) - heapsize);
-							new := NEWREC(tag);	(* will find a free block if heap has been expanded properly *)
-						END ;
+						firstTry := TRUE;
 						Unlock(); RETURN new
 					ELSE
 						Unlock(); RETURN NIL
