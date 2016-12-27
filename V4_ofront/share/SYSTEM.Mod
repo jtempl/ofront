@@ -18,8 +18,10 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 		CmdNameLen = 24;
 		SZL = SIZE(LONGINT);
 		Unit = 4*SZL;	(* smallest possible heap block *)
+		ldUnit = 4;	(* Unit = 2^ldUnit, for unsigned division expressed as logical shift right *)
 		nofLists = 9;	(* number of freeList entries excluding sentinel *)
 		heapSize0 = 8000*Unit;	(* startup heap size *)
+		heapMinExpand = 10000*Unit;	(* minimum heap expansion size *)
 
 	(* all blocks look the same:
 		free blocks describe themselves: size = Unit
@@ -160,8 +162,8 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 	PROCEDURE ExtendHeap(blksz: LONGINT);
 		VAR size, chnk, j, next: LONGINT;
 	BEGIN
-		IF uLT(10000*Unit, blksz) THEN size := blksz
-		ELSE size := 10000*Unit	(* additional heuristics *)
+		IF uLT(heapMinExpand, blksz) THEN size := blksz
+		ELSE size := heapMinExpand	(* heuristics for avoiding many small heap expansions *)
 		END ;
 		chnk := NewChunk(size);
 		IF chnk # 0 THEN 
@@ -184,11 +186,11 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 		Lock();
 		SYSTEM.GET(tag, blksz);
 		ASSERT(blksz MOD Unit = 0);
-		i0 := blksz DIV Unit; i := i0;
-		IF uLT(i, nofLists) THEN adr := freeList[i];
+		i0 := SYSTEM.LSH(blksz, -ldUnit) (*uDIV Unit*); i := i0;
+		IF i < nofLists THEN adr := freeList[i];
 			WHILE adr = 0 DO INC(i); adr := freeList[i] END
 		END ;
-		IF uLT(i, nofLists) THEN (* unlink from freelist[i] *)
+		IF i < nofLists THEN (* unlink from freelist[i] *)
 			SYSTEM.GET(adr + nextOff, next);
 			freeList[i] := next;
 			IF i # i0 THEN (* split *)
@@ -207,11 +209,11 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 				IF adr = 0 THEN (* nothing free *)
 					IF firstTry THEN
 						GC(TRUE); INC(blksz, Unit);
-						(* anti-thrashing heuristics: ensure 1/4 of the heap will not be allocated *)
-						t := (allocated + blksz) DIV (3*Unit) * (4*Unit); (* minimum required new heapsize *)
+						(* anti-thrashing heuristics: ensure 1/5 of the heap will not be allocated *)
+						t := SYSTEM.LSH(allocated + blksz, -2) (*uDIV 4*) * 5 ; (* minimum preferred heapsize *)
 						IF uLT(heapsize, t) THEN ExtendHeap(t - heapsize) END ;
 						firstTry := FALSE; new := NEWREC(tag);
-						IF new = NIL THEN (* fragmentation prevented allocation, heap is 1/4 free *)
+						IF new = NIL THEN (* heap is 1/5 free but fragmentation prevented allocation *)
 							ExtendHeap(blksz);
 							new := NEWREC(tag)	(* will find a free block if heap has been expanded successfully *)
 						END ;
@@ -332,7 +334,7 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 						SYSTEM.PUT(start, start+SZL);
 						SYSTEM.PUT(start+sizeOff, freesize);
 						SYSTEM.PUT(start+sntlOff, NoPtrSntl);
-						i := freesize DIV Unit; freesize := 0;
+						i := SYSTEM.LSH(freesize, -ldUnit) (*uDIV Unit*); freesize := 0;
 						IF uLT(i, nofLists) THEN SYSTEM.PUT(start + nextOff, freeList[i]); freeList[i] := start
 						ELSE SYSTEM.PUT(start + nextOff, bigBlocks); bigBlocks := start
 						END
@@ -353,7 +355,7 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 				SYSTEM.PUT(start, start+SZL);
 				SYSTEM.PUT(start+sizeOff, freesize);
 				SYSTEM.PUT(start+sntlOff, NoPtrSntl);
-				i := freesize DIV Unit; freesize := 0;
+				i := SYSTEM.LSH(freesize, -ldUnit) (*uDIV Unit*); freesize := 0;
 				IF uLT(i, nofLists) THEN SYSTEM.PUT(start + nextOff, freeList[i]); freeList[i] := start
 				ELSE SYSTEM.PUT(start + nextOff, bigBlocks); bigBlocks := start
 				END
