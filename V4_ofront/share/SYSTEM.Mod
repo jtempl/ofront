@@ -21,7 +21,6 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 		ldUnit = 4;	(* Unit = 2^ldUnit, for unsigned division expressed as logical shift right *)
 		nofLists = 9;	(* number of freeList entries excluding sentinel *)
 		heapSize0 = 8000*Unit;	(* startup heap size *)
-		heapMinExpand = 10000*Unit;	(* minimum heap expansion size *)
 
 	(* all blocks look the same:
 		free blocks describe themselves: size = Unit
@@ -90,7 +89,8 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 		(* extensible heap *)
 		heap,	(* the sorted list of heap chunks *)
 		heapMin, heapMax, (* filter for pointers; used for stack collection *)
-		heapsize*: LONGINT;	(* the sum of all heap chunk sizes *)
+		heapsize*,	(* the sum of all heap chunk sizes *)
+		heapMinExpand: LONGINT;	(* minimum heap expansion size *)
 
 		(* finalization candidates *)
 		fin: FinNode;
@@ -162,6 +162,7 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 	PROCEDURE ExtendHeap(blksz: LONGINT);
 		VAR size, chnk, j, next: LONGINT;
 	BEGIN
+		ASSERT(blksz MOD Unit = 0);
 		IF uLT(heapMinExpand, blksz) THEN size := blksz
 		ELSE size := heapMinExpand	(* heuristics for avoiding many small heap expansions *)
 		END ;
@@ -175,6 +176,12 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 				WHILE (next # 0) & uLT(next, chnk) DO j := next; SYSTEM.GET(j, next) END ;
 				SYSTEM.PUT(chnk, next); SYSTEM.PUT(j, chnk)
 			END
+		ELSIF ~firstTry THEN
+			(* heap memory exhausted, i.e. heap is not expanded and NEWREC() will return NIL.
+			In order to be able to report a trap due to NIL access there is more 
+			memory needed, which may be available by reducing heapMinExpand *) 
+			heapMinExpand := Unit
+		(* ELSE firstTry: ignore failed heap expansion for anti-thrashing heuristics *)
 		END
 	END ExtendHeap;
 
@@ -210,8 +217,10 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 					IF firstTry THEN
 						GC(TRUE); INC(blksz, Unit);
 						(* anti-thrashing heuristics: ensure 1/5 of the heap will not be allocated *)
-						t := SYSTEM.LSH(allocated + blksz, -2) (*uDIV 4*) * 5 ; (* minimum preferred heapsize *)
-						IF uLT(heapsize, t) THEN ExtendHeap(t - heapsize) END ;
+						t := SYSTEM.LSH(allocated + blksz, -(2+ldUnit)) (*uDIV (4*Unit)*) * (5*Unit); (* min. preferred heapsize *)
+						IF uLT(heapsize, t) THEN ExtendHeap(t - heapsize)
+							(* if there is not enough heap memory then the heap will be expanded below by blksz *)
+						END ;
 						firstTry := FALSE; new := NEWREC(tag);
 						IF new = NIL THEN (* heap is 1/5 free but fragmentation prevented allocation *)
 							ExtendHeap(blksz);
@@ -505,4 +514,5 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 		firstTry := TRUE; freeList[nofLists] := 1 (* sentinel, # 0 *)
 	END InitHeap;
 
+BEGIN heapMinExpand := heapSize0
 END SYSTEM.
