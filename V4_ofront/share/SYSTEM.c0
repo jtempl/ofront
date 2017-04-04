@@ -84,6 +84,7 @@ void SYSTEM_ENUMR(adr, typ, size, n, P)
 	void (*P)();
 {
 	long *t, off;
+	if (typ == 0) return; /* not yet initialized */
 	typ++;
 	while (n > 0) {
 		t = typ;
