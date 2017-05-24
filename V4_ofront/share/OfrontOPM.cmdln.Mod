@@ -196,7 +196,7 @@ MODULE OfrontOPM;	(* RC 6.3.89 / 28.6.89, J.Templ 10.7.89 / 22.7.96  *)
 			Console.String('  command = "'); Console.String(cmd); Console.String('" options {file options}.'); Console.Ln;
 			Console.String('  options = ["-" {option} ].'); Console.Ln;
 			Console.String('  option  = "m" | "s" | "e" | "i" | "l" | "k" | "r" | "x" | "a" | "p" | "t"'); 
-			IF cmd = "ocl" THEN Console.String(' "V" | "G" | "O" | "C"') END ;
+			IF cmd = "ocl" THEN Console.String(' | "V" | "G" | "O" | "C"') END ;
 			Console.String(".");
 			Console.Ln;
 			Console.Ln;
