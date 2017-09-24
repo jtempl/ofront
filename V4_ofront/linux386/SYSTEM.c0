@@ -1,7 +1,7 @@
 /* 
 *	The body prefix file of the Ofront runtime system, Version 1.0
 *
-*	Copyright (c) Software Templ, 1994, 1995
+*	Copyright (c) Software Templ, 1994-2016
 *
 *	Module SYSTEM is subject to change any time without prior notification.
 *	Software Templ disclaims all warranties with regard to module SYSTEM,
@@ -10,6 +10,7 @@
 *
 *	Version 1.1  jt, 24.11.95  fixes for correct pointer arithmetic on Cray computers
 *	jt 31.1.2007  ANSI prototypes for malloc and exit in order to avoid cc warnings
+*	jt 22.09.2016  module loading/unloading integrated with shared objects
 *
 */
 

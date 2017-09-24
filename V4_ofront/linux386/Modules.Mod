@@ -16,7 +16,7 @@ MODULE Modules;	(* jt 27.2.95 *)
 			cmds-: Cmd;
 			types-: LONGINT;
 			enumPtrs-: PROCEDURE (P: PROCEDURE(p: LONGINT));
-			reserved1, reserved2: LONGINT;
+			reserved1, reserved2: LONGINT;	(* 1=shared object handle; 2=import list *)
 		END ;
 
 		Command* = PROCEDURE;
@@ -26,6 +26,12 @@ MODULE Modules;	(* jt 27.2.95 *)
 			name-: ARRAY 24 OF CHAR;
 			cmd-: Command
 		END ;
+
+		Dlinfo = RECORD [1] (* cf. <dlfcn.h> *)
+			fname, fbase, sname, saddr: LONGINT
+		END;
+
+		ModuleBody = PROCEDURE (): Module;
 
 	VAR
 		res*: INTEGER;
@@ -38,16 +44,31 @@ MODULE Modules;	(* jt 27.2.95 *)
 		"#include <dlfcn.h>";
 
 	PROCEDURE -dlopen(path: ARRAY OF CHAR): LONGINT
-		"(long)dlopen((const char*)path, RTLD_LAZY)";
+		"(long)dlopen((const char*)path, RTLD_LAZY + RTLD_GLOBAL)";
 
-	PROCEDURE -dlsym(handle: LONGINT; name: ARRAY OF CHAR): Command
-		"(Modules_Command)dlsym((void*)handle, name)";
+	PROCEDURE -dlsym(handle: LONGINT; name: ARRAY OF CHAR): ModuleBody
+		"(Modules_ModuleBody)dlsym((void*)handle, name)";
 
 	PROCEDURE -dlclose(handle: LONGINT): LONGINT
 		"dlclose((void*)handle)";
 
 	PROCEDURE -dlerror(VAR s: ARRAY OF CHAR)
 		"__COPY(dlerror(), s, s__len)";
+
+	PROCEDURE -dlopen2(pathAdr: LONGINT): LONGINT
+		"(long)dlopen((const char*)pathAdr, RTLD_LAZY + RTLD_GLOBAL)";
+
+	PROCEDURE -dladdr(addr: LONGINT; VAR info: Dlinfo): LONGINT
+		"(LONGINT)dladdr((void*)addr, info)";
+
+	PROCEDURE -externdladdr()
+			"extern int dladdr(void*, void*);";
+
+	PROCEDURE -externRefLibHandle()
+			"extern LONGINT (*SYSTEM_refLibHandle)(LONGINT);";
+
+	PROCEDURE -installRefLibHandle()
+			"SYSTEM_refLibHandle = &Modules_RefLibHandle";
 
 	PROCEDURE -next(): LONGINT
 		"(LONGINT)RTLD_NEXT";
@@ -58,6 +79,11 @@ MODULE Modules;	(* jt 27.2.95 *)
 	PROCEDURE -setmodules*(m: Module)
 			"SYSTEM_modules = m";
 
+	PROCEDURE -externfree()
+			"extern void free(void*);";
+
+	PROCEDURE -free(ptr: LONGINT)
+			"free((void*)ptr)";
 
 	PROCEDURE Append(VAR a: ARRAY OF CHAR; b: ARRAY OF CHAR);
 		VAR i, j: INTEGER;
@@ -105,8 +131,8 @@ MODULE Modules;	(* jt 27.2.95 *)
 		END
 	END err;
 
-	PROCEDURE Load(name, bodyname: ARRAY OF CHAR; VAR lib: LONGINT; VAR body: Command);
-		VAR libname: ARRAY 256 OF CHAR;
+	PROCEDURE Load(name, bodyname: ARRAY OF CHAR; VAR lib: LONGINT; VAR body: ModuleBody);
+		VAR libname: ARRAY 256 OF CHAR; rc: LONGINT;
 	BEGIN
 		libname := "lib"; Append(libname, name); Append(libname, ".so");
 		IF trace THEN
@@ -119,14 +145,14 @@ MODULE Modules;	(* jt 27.2.95 *)
 		END ;
 		lib := dlopen(libname);
 		IF lib # 0 THEN body := dlsym(lib, bodyname);
-			IF body = NIL THEN err() END
+			IF body = NIL THEN err(); rc := dlclose(lib) END
 		ELSE err()
 		END ;
 	END Load;
 
 	PROCEDURE ThisMod* (name: ARRAY OF CHAR): Module;
 		VAR m: Module; bodyname, libname1, libname2: ARRAY 64 OF CHAR;
-			body: Command; lib, handle: LONGINT;
+			body: ModuleBody; lib, rc: LONGINT;
 	BEGIN
 		m := modules();
 		WHILE (m # NIL) & (m.name # name) DO m := m.next END ;
@@ -137,12 +163,10 @@ MODULE Modules;	(* jt 27.2.95 *)
 				Console.String(")");
 				Console.Ln;
 			END ;
-			handle := 0; body := NIL;
+			body := NIL;
 			COPY(name, bodyname); Append(bodyname, "__init");
 			Load(name, bodyname, lib, body);
-			IF body # NIL THEN
-				handle := lib (* lib belongs to module 1:1 *)
-			ELSE
+			IF body = NIL THEN
 				GetSubsys1(name, libname1);
 				IF libname1[0] # 0X THEN
 					Load(libname1, bodyname, lib, body)
@@ -158,19 +182,21 @@ MODULE Modules;	(* jt 27.2.95 *)
 			END ;
 			IF body = NIL THEN
 				IF FullName(Kernel.LIB) THEN lib := dlopen(Kernel.LIB);
-					IF lib # 0 THEN body := dlsym(lib, bodyname) ELSE err() END
+					IF lib # 0 THEN body := dlsym(lib, bodyname);
+						IF body = NIL THEN rc := dlclose(lib) END
+					ELSE err()
+					END
 				ELSE Load(Kernel.LIB, bodyname, lib, body)
 				END
 			END ;
 			IF body # NIL THEN
-				body(); m := modules();
-				WHILE (m # NIL) & (m.name # name) DO m := m.next END ;
-				IF m # NIL THEN m.reserved1 := handle END
+				m := body();
+				lib := dlclose(lib)	(* reference count is maintained per module of lib *)
 			END
 		END ;
 		IF m # NIL THEN res := 0; resMsg := ""
 		ELSE res := 1; COPY(name, importing);
-			resMsg := ' module "'; Append(resMsg, name); Append(resMsg, '" not found');
+			resMsg := ' module "'; Append(resMsg, name); Append(resMsg, '" not found or library not loadable');
 		END ;
 		RETURN m
 	END ThisMod;
@@ -186,31 +212,56 @@ MODULE Modules;	(* jt 27.2.95 *)
 		END
 	END ThisCommand;
 
+	PROCEDURE IsSingletonLib(libHandle: LONGINT): BOOLEAN;
+		VAR m: Module; cnt: INTEGER;
+	BEGIN m := modules(); cnt := 0;
+		WHILE (m # NIL) & (cnt < 2) DO
+			IF m.reserved1 = libHandle THEN INC(cnt) END;
+			m := m.next
+		END ;
+		RETURN cnt < 2
+	END IsSingletonLib;
+
 	PROCEDURE Free*(name: ARRAY OF CHAR; all: BOOLEAN);
-		VAR m, p: Module;
+		VAR m, p, im: Module; imps, ptr: LONGINT;
 	BEGIN m := modules();
-		IF all THEN
-			res := 1; resMsg := 'unloading "all" not yet supported'
-		ELSE
-			WHILE (m # NIL) & (m.name # name) DO p := m; m := m.next END ;
-			IF (m # NIL) & (m.refcnt = 0) THEN
-				IF m.reserved1 # 0 THEN
-					IF dlclose(m.reserved1) # 0 THEN
-						res := 1; dlerror(resMsg);
-					ELSE res := 0;
-						IF m = modules() THEN setmodules(m.next)
-						ELSE p.next := m.next
-						END
-					END
-				ELSE res := 1;
-					resMsg := "module not loaded in separate library"
+		WHILE (m # NIL) & (m.name # name) DO p := m; m := m.next END ;
+		IF (m # NIL) & (m.refcnt = 0) THEN
+			IF (m.reserved1 # 0) & IsSingletonLib(m.reserved1) THEN
+				IF dlclose(m.reserved1) # 0 THEN
+					res := 1; dlerror(resMsg);
+				ELSE
+					IF m = modules() THEN setmodules(m.next) ELSE p.next := m.next END;
+					imps := m.reserved2;
+					WHILE imps # 0 DO
+						SYSTEM.GET(imps + SIZE(LONGINT), im); (* im := imps.mod *)
+						DEC(im.refcnt);
+						IF all & (im.refcnt = 0) & (im.reserved1 # 0) THEN Free(im.name, all) END;
+						ptr := imps; SYSTEM.GET(imps, imps); (* imps := imps.next *)
+						free(ptr)
+					END;
+					res := 0; m.reserved1 := 0; m.reserved2 := 0
 				END
 			ELSE res := 1;
-				IF m = NIL THEN resMsg := "module not found"
-				ELSE resMsg := "clients of this module exist"
-				END
+				resMsg := "module not loaded in separate library"
+			END
+		ELSE res := 1;
+			IF m = NIL THEN resMsg := "module not found"
+			ELSE resMsg := "clients of this module exist"
 			END
 		END
 	END Free;
 
+	PROCEDURE RefLibHandle(body: LONGINT): LONGINT;
+		VAR info: Dlinfo; res, libHandle: LONGINT;
+	BEGIN
+		res := dladdr(body, info);
+		IF (res # 0) & (info.sname # 0) THEN
+			libHandle := dlopen2(info.fname); (* inc reference count of shared object *)
+			IF libHandle # 0 THEN RETURN libHandle END
+		END;
+		RETURN 0;
+	END RefLibHandle;
+
+BEGIN installRefLibHandle(); trace := TRUE
 END Modules.

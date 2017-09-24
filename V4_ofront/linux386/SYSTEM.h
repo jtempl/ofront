@@ -4,7 +4,7 @@
 /*
 
 the Ofront runtime system interface and macros library
-copyright (c) Josef Templ, 1995, 1996
+copyright (c) Josef Templ, 1995-2016
 
 gcc for Linux version (same as SPARC/Solaris2)
 uses double # as concatenation operator
@@ -67,13 +67,15 @@ extern void SYSTEM_ENUMP();
 extern void SYSTEM_ENUMR();
 
 /* module registry */
-#define __DEFMOD	static void *m; if(m!=0)return m
-#define __REGMOD(name, enum)	if(m==0)m=SYSTEM_REGMOD((CHAR*)name,enum); else return m
+#define __DEFMOD	static void *m; LONGINT imps; if(m!=0)return m; imps=0
+#define __REGMOD(name, enum)	if(m==0)m=SYSTEM_REGMOD((CHAR*)name, enum, 0, imps); else return m
+#define __REGMOD2(name, enum)	if(m==0)m=SYSTEM_REGMOD((CHAR*)#name, enum, &name##__init, imps); else return m
 #define __ENDMOD	return m
-#define __INIT(argc, argv)	static void *m; SYSTEM_INIT(argc, (long)&argv);
-#define __REGMAIN(name, enum)	m=SYSTEM_REGMOD(name,enum)
+#define __INIT(argc, argv)	static void *m; LONGINT imps; SYSTEM_INIT(argc, (long)&argv)
+#define __REGMAIN(name, enum)	m=SYSTEM_REGMOD(name, enum, 0, imps)
+#define __REGMAIN2(name, enum)	m=SYSTEM_REGMOD(#name, enum, (LONGINT)&main, imps)
 #define __FINI	SYSTEM_FINI(); return 0
-#define __IMPORT(name)	SYSTEM_INCREF(name##__init())
+#define __IMPORT(name)	SYSTEM_INCREF(name##__init(),&imps)
 #define __REGCMD(name, cmd)	SYSTEM_REGCMD(m, name, cmd)
 
 /* SYSTEM ops */
