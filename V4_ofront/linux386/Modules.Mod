@@ -1,4 +1,4 @@
-MODULE Modules;	(* jt 27.2.95 *)
+MODULE Modules;	(* jt 27.2.95, 3.10.2016 *)
 
 	IMPORT SYSTEM, Console, Unix(*for errno*), Kernel;
 
@@ -16,7 +16,7 @@ MODULE Modules;	(* jt 27.2.95 *)
 			cmds-: Cmd;
 			types-: LONGINT;
 			enumPtrs-: PROCEDURE (P: PROCEDURE(p: LONGINT));
-			reserved1, reserved2: LONGINT;	(* 1=shared object handle; 2=import list *)
+			reserved1, reserved2: LONGINT; (* 1=shared object handle; 2=import list *)
 		END ;
 
 		Command* = PROCEDURE;
@@ -37,11 +37,13 @@ MODULE Modules;	(* jt 27.2.95 *)
 		res*: INTEGER;
 		resMsg*: ARRAY 256 OF CHAR;
 		imported*, importing*: ModuleName;
-		trace*: BOOLEAN; (* trace module loading activities *)
+		trace: BOOLEAN; (* log module loading activities on Console *)
 
+	PROCEDURE -UseGNU()
+		"#define __USE_GNU 1";
 
 	PROCEDURE -include()
-		"#include <dlfcn.h>";
+		"#include <dlfcn.h>";	(* extensions enabled by __USE_GNU *)
 
 	PROCEDURE -dlopen(path: ARRAY OF CHAR): LONGINT
 		"(long)dlopen((const char*)path, RTLD_LAZY + RTLD_GLOBAL)";
@@ -49,29 +51,26 @@ MODULE Modules;	(* jt 27.2.95 *)
 	PROCEDURE -dlsym(handle: LONGINT; name: ARRAY OF CHAR): ModuleBody
 		"(Modules_ModuleBody)dlsym((void*)handle, name)";
 
+	PROCEDURE -dlsymDefault(name: ARRAY OF CHAR): ModuleBody
+		"(Modules_ModuleBody)dlsym(RTLD_DEFAULT, name)";
+
 	PROCEDURE -dlclose(handle: LONGINT): LONGINT
 		"dlclose((void*)handle)";
 
 	PROCEDURE -dlerror(VAR s: ARRAY OF CHAR)
 		"__COPY(dlerror(), s, s__len)";
 
-	PROCEDURE -dlopen2(pathAdr: LONGINT): LONGINT
+	PROCEDURE -dlopenRef(pathAdr: LONGINT): LONGINT
 		"(long)dlopen((const char*)pathAdr, RTLD_LAZY + RTLD_GLOBAL)";
 
 	PROCEDURE -dladdr(addr: LONGINT; VAR info: Dlinfo): LONGINT
-		"(LONGINT)dladdr((void*)addr, info)";
-
-	PROCEDURE -externdladdr()
-			"extern int dladdr(void*, void*);";
+		"(LONGINT)dladdr((void*)addr, (Dl_info*)info)";
 
 	PROCEDURE -externRefLibHandle()
 			"extern LONGINT (*SYSTEM_refLibHandle)(LONGINT);";
 
 	PROCEDURE -installRefLibHandle()
 			"SYSTEM_refLibHandle = &Modules_RefLibHandle";
-
-	PROCEDURE -next(): LONGINT
-		"(LONGINT)RTLD_NEXT";
 
 	PROCEDURE -modules*(): Module
 			"(Modules_Module)SYSTEM_modules";
@@ -93,7 +92,8 @@ MODULE Modules;	(* jt 27.2.95 *)
 		a[i] := 0X
 	END Append;
 
-	PROCEDURE GetSubsys1(n: ARRAY OF CHAR; VAR s: ARRAY OF CHAR);	(* digit treated as upper case *)
+	(* digit treated as upper case *)
+	PROCEDURE GetSubsys1(n: ARRAY OF CHAR; VAR s: ARRAY OF CHAR);
 		VAR i: INTEGER; ch: CHAR;
 	BEGIN
 		ch := n[0]; i := 0;
@@ -102,7 +102,8 @@ MODULE Modules;	(* jt 27.2.95 *)
 		IF ch = 0X THEN s[0] := 0X ELSE s[i] := 0X END
 	END GetSubsys1;
 
-	PROCEDURE GetSubsys2(n: ARRAY OF CHAR; VAR s: ARRAY OF CHAR);	(* digit treated as lower case *)
+	(* digit treated as lower case *)
+	PROCEDURE GetSubsys2(n: ARRAY OF CHAR; VAR s: ARRAY OF CHAR);
 		VAR i: INTEGER; ch: CHAR;
 	BEGIN
 		ch := n[0]; i := 0;
@@ -123,29 +124,30 @@ MODULE Modules;	(* jt 27.2.95 *)
 	END FullName;
 
 	PROCEDURE err();
-		VAR i: INTEGER; s: ARRAY 1024 OF CHAR;
-	BEGIN i := 0; dlerror(s);
+		VAR s: ARRAY 1024 OF CHAR;
+	BEGIN dlerror(s);
 		IF trace THEN
-			Console.String(s);
-			Console.Ln;
+			Console.String("  dlerror: "); Console.String(s); Console.Ln;
 		END
 	END err;
 
-	PROCEDURE Load(name, bodyname: ARRAY OF CHAR; VAR lib: LONGINT; VAR body: ModuleBody);
+	PROCEDURE Load(name, bodyname: ARRAY OF CHAR; VAR lib: LONGINT; VAR body: ModuleBody;
+								fullName: BOOLEAN);
 		VAR libname: ARRAY 256 OF CHAR; rc: LONGINT;
 	BEGIN
-		libname := "lib"; Append(libname, name); Append(libname, ".so");
+		IF fullName THEN COPY(name, libname)
+		ELSE libname := "lib"; Append(libname, name); Append(libname, ".so")
+		END;
 		IF trace THEN
-			Console.String("Modules.Load(libname=");
-			Console.String(libname);
-			Console.String(", entry=");
-			Console.String(bodyname);
-			Console.String(")");
-			Console.Ln;
+			Console.String("  Modules.Load(libname="); Console.String(libname);
+			Console.String(", entry="); Console.String(bodyname);
+			Console.String(")"); Console.Ln
 		END ;
 		lib := dlopen(libname);
 		IF lib # 0 THEN body := dlsym(lib, bodyname);
-			IF body = NIL THEN err(); rc := dlclose(lib) END
+			IF body = NIL THEN err(); rc := dlclose(lib)
+			ELSIF trace THEN Console.String("  success"); Console.Ln;
+			END
 		ELSE err()
 		END ;
 	END Load;
@@ -157,41 +159,36 @@ MODULE Modules;	(* jt 27.2.95 *)
 		m := modules();
 		WHILE (m # NIL) & (m.name # name) DO m := m.next END ;
 		IF m = NIL THEN
-			IF trace THEN
-				Console.String("Modules.ThisMod(name=");
-				Console.String(name);
-				Console.String(")");
-				Console.Ln;
+			IF trace THEN Console.String("Modules.ThisMod(name=");
+				Console.String(name); Console.String(")"); Console.Ln
 			END ;
 			body := NIL;
 			COPY(name, bodyname); Append(bodyname, "__init");
-			Load(name, bodyname, lib, body);
+			body := dlsymDefault(bodyname);
+			IF body = NIL THEN
+				Load(name, bodyname, lib, body, FALSE);
+			ELSIF trace THEN Console.String("  RTLD_DEFAULT: success"); Console.Ln;
+			END ;
 			IF body = NIL THEN
 				GetSubsys1(name, libname1);
 				IF libname1[0] # 0X THEN
-					Load(libname1, bodyname, lib, body)
+					Load(libname1, bodyname, lib, body, FALSE)
 				END
 			END ;
 			IF body = NIL THEN
 				GetSubsys2(name, libname2);
 				IF libname2[0] # 0X THEN
 					IF (libname2 # libname1) THEN
-						Load(libname2, bodyname, lib, body)
+						Load(libname2, bodyname, lib, body, FALSE)
 					END
 				END
 			END ;
 			IF body = NIL THEN
-				IF FullName(Kernel.LIB) THEN lib := dlopen(Kernel.LIB);
-					IF lib # 0 THEN body := dlsym(lib, bodyname);
-						IF body = NIL THEN rc := dlclose(lib) END
-					ELSE err()
-					END
-				ELSE Load(Kernel.LIB, bodyname, lib, body)
-				END
+				Load(Kernel.LIB, bodyname, lib, body, FullName(Kernel.LIB))
 			END ;
 			IF body # NIL THEN
 				m := body();
-				lib := dlclose(lib)	(* reference count is maintained per module of lib *)
+				rc := dlclose(lib)	(* reference count is maintained per module of lib *)
 			END
 		END ;
 		IF m # NIL THEN res := 0; resMsg := ""
@@ -257,11 +254,19 @@ MODULE Modules;	(* jt 27.2.95 *)
 	BEGIN
 		res := dladdr(body, info);
 		IF (res # 0) & (info.sname # 0) THEN
-			libHandle := dlopen2(info.fname); (* inc reference count of shared object *)
+			libHandle := dlopenRef(info.fname); (* inc ref. count of shared object *)
 			IF libHandle # 0 THEN RETURN libHandle END
 		END;
 		RETURN 0;
 	END RefLibHandle;
 
-BEGIN installRefLibHandle(); trace := TRUE
+	PROCEDURE TraceOn*;
+	BEGIN trace := TRUE; Console.String("Modules.TraceOn"); Console.Ln
+	END TraceOn;
+
+	PROCEDURE TraceOff*;
+	BEGIN trace := FALSE; Console.String("Modules.TraceOff"); Console.Ln
+	END TraceOff;
+
+BEGIN installRefLibHandle()
 END Modules.

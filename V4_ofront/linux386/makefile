@@ -3,7 +3,7 @@
 # environment variable for setting C compiler options: CCOPT
 
 VERSION = linux-386-3.2
-RELEASE = 1.3
+RELEASE = 1.3.1
 RELEASENAME = ofront-$(RELEASE)
 LIBRARY = libOberonV4.so
 V4_ofront = V4_ofront

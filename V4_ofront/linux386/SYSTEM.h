@@ -6,7 +6,7 @@
 the Ofront runtime system interface and macros library
 copyright (c) Josef Templ, 1995-2016
 
-gcc for Linux version (same as SPARC/Solaris2)
+gcc for Linux version (derived from SPARC/Solaris2)
 uses double # as concatenation operator
 
 */
