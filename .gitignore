@@ -3,6 +3,7 @@
 *.a
 *.o
 *.so
+*.sym
 *.tar
 *.gz
 .tmp.*

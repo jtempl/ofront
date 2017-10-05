@@ -62,7 +62,7 @@ MODULE Configuration;	(* jt 5.4.95 *)
 		Oberon.Install(logger);
 		FKeys.Set(12, FKeys.InternationalKey);
 		FKeys.Set(10, FKeys.InternationalKey);
-		Out.String("Ofront 1.3, Oberon V4"); Out.Ln;
+		Out.String("Ofront 1.4, Oberon V4"); Out.Ln;
 		Oberon.Loop
 	END Init;
 

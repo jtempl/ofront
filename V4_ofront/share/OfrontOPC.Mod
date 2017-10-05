@@ -973,7 +973,7 @@ MODULE OfrontOPC;	(* copyright (c) J. Templ 12.7.95 / 3.7.96 *)
 		END ;
 		InitImports(OPT.topScope^.right);
 		BegStat;
-		IF mainprog THEN OPM.WriteString('__REGMAIN2(') ELSE OPM.WriteString('__REGMOD2(') END ;
+		IF mainprog THEN OPM.WriteString('__REGMAIN(') ELSE OPM.WriteString('__REGMOD(') END ;
 		OPM.WriteString(OPM.modName);
 		IF GlbPtrs THEN OPM.WriteString(', EnumPtrs)') ELSE OPM.WriteString(', 0)') END ;
 		EndStat;

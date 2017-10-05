@@ -27,7 +27,7 @@ MODULE Configuration;	(* jt 17.4.95 *)
 			TextFrames.NewText(TextFrames.Text("System.Tool"), 0),
 			TextFrames.menuH,
 			X, Y);
-		Out.String("Ofront 1.3 minimal configuration"); Out.Ln;
+		Out.String("Ofront 1.4, minimal Oberon V4"); Out.Ln;
 		Oberon.Loop
 	END Init;
 

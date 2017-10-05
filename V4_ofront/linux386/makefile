@@ -3,7 +3,7 @@
 # environment variable for setting C compiler options: CCOPT
 
 VERSION = linux-386-3.2
-RELEASE = 1.3.1
+RELEASE = 1.4
 RELEASENAME = ofront-$(RELEASE)
 LIBRARY = libOberonV4.so
 V4_ofront = V4_ofront
@@ -16,11 +16,13 @@ OFRONT = $(SETPATH) ofront -s
 
 CC = cc $(CCOPT) -c
 CL = cc $(CCOPT)
-LD = cc -shared -o $(LIBRARY)
+# Note to LD: for unknown reasons libX11.so cannot be found where it is under Debian,
+# so we need a link ./libX11.so => /usr/lib/i386-linux-gnu/libX11.so.6
+LD = cc -shared -o $(LIBRARY) -L. -ldl -lm -lX11
 
 ARCHIVE = ar rc libOberonV4.a
 RANLIB = 
-CLOBERONOPTS = -L. -L/usr/lib -lOberonV4 -lX11 -ldl -lm
+CLOBERONOPTS = -L. -lOberonV4
 OCL = ocl.bash
 
 OCAT = $(SETPATH) ocat
