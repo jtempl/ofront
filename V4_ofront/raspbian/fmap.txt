@@ -1,0 +1,5 @@
+#fontmapfile
+Syntax10.Scn.Fnt Syntax14.Scn.Fnt
+Syntax10i.Scn.Fnt Syntax14i.Scn.Fnt
+Syntax10b.Scn.Fnt Syntax14b.Scn.Fnt
+Syntax10m.Scn.Fnt Syntax14m.Scn.Fnt
