@@ -57,7 +57,7 @@ MODULE Input;	(* RC 4.11.93 *)
 								X11.SetInputFocus(X11.display, X11.primary, X11.RevertToParent, event.time)
 						| X11.Button2: lastButtons := S.VAL(LONGINT, S.VAL(SET, lastButtons) + S.VAL(SET, X11.Button2Mask))
 						| X11.Button3: lastButtons := S.VAL(LONGINT, S.VAL(SET, lastButtons) + S.VAL(SET, X11.Button3Mask))
-						ELSE (* ignore e.g. mouse wheel forward/backward on some X11 servers *)
+						ELSE
 						END ;
 						lastX := event.x; lastY := event.y;
 						IF (msin - msout) MOD QueueLen # QueueLen - 1 THEN 
@@ -76,7 +76,7 @@ MODULE Input;	(* RC 4.11.93 *)
 							X11.Button1: lastButtons := S.VAL(LONGINT, S.VAL(SET, lastButtons) - S.VAL(SET, X11.Button1Mask))
 						| X11.Button2: lastButtons := S.VAL(LONGINT, S.VAL(SET, lastButtons) - S.VAL(SET, X11.Button2Mask))
 						| X11.Button3: lastButtons := S.VAL(LONGINT, S.VAL(SET, lastButtons) - S.VAL(SET, X11.Button3Mask))
-						ELSE (* ignore e.g. mouse wheel forward/backward on some X11 servers *)
+						ELSE
 						END ;
 						lastX := event.x; lastY := event.y;
 						IF (msin - msout) MOD QueueLen # QueueLen - 1 THEN 
