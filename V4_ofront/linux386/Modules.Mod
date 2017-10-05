@@ -46,7 +46,7 @@ MODULE Modules;	(* jt 27.2.95, 3.10.2016 *)
 		"#include <dlfcn.h>";	(* extensions enabled by __USE_GNU *)
 
 	PROCEDURE -dlopen(path: ARRAY OF CHAR): LONGINT
-		"(long)dlopen((const char*)path, RTLD_LAZY + RTLD_GLOBAL)";
+		"(long)dlopen((const char*)path, RTLD_NOW + RTLD_GLOBAL)";
 
 	PROCEDURE -dlsym(handle: LONGINT; name: ARRAY OF CHAR): ModuleBody
 		"(Modules_ModuleBody)dlsym((void*)handle, name)";
@@ -61,7 +61,7 @@ MODULE Modules;	(* jt 27.2.95, 3.10.2016 *)
 		"__COPY(dlerror(), s, s__len)";
 
 	PROCEDURE -dlopenRef(pathAdr: LONGINT): LONGINT
-		"(long)dlopen((const char*)pathAdr, RTLD_LAZY + RTLD_GLOBAL)";
+		"(long)dlopen((const char*)pathAdr, RTLD_NOW + RTLD_GLOBAL)";
 
 	PROCEDURE -dladdr(addr: LONGINT; VAR info: Dlinfo): LONGINT
 		"(LONGINT)dladdr((void*)addr, (Dl_info*)info)";
@@ -145,12 +145,14 @@ MODULE Modules;	(* jt 27.2.95, 3.10.2016 *)
 		END ;
 		lib := dlopen(libname);
 		IF lib # 0 THEN body := dlsym(lib, bodyname);
-			IF body = NIL THEN err(); rc := dlclose(lib)
-			ELSIF trace THEN Console.String("  success"); Console.Ln;
-			END
+			IF body = NIL THEN err(); rc := dlclose(lib) END
 		ELSE err()
 		END ;
 	END Load;
+
+	PROCEDURE CloseLib(libHandle: LONGINT);
+	BEGIN libHandle := dlclose(libHandle)
+	END CloseLib;
 
 	PROCEDURE ThisMod* (name: ARRAY OF CHAR): Module;
 		VAR m: Module; bodyname, libname1, libname2: ARRAY 64 OF CHAR;
@@ -165,30 +167,33 @@ MODULE Modules;	(* jt 27.2.95, 3.10.2016 *)
 			body := NIL;
 			COPY(name, bodyname); Append(bodyname, "__init");
 			body := dlsymDefault(bodyname);
-			IF body = NIL THEN
-				Load(name, bodyname, lib, body, FALSE);
-			ELSIF trace THEN Console.String("  RTLD_DEFAULT: success"); Console.Ln;
-			END ;
-			IF body = NIL THEN
-				GetSubsys1(name, libname1);
-				IF libname1[0] # 0X THEN
-					Load(libname1, bodyname, lib, body, FALSE)
-				END
-			END ;
-			IF body = NIL THEN
-				GetSubsys2(name, libname2);
-				IF libname2[0] # 0X THEN
-					IF (libname2 # libname1) THEN
-						Load(libname2, bodyname, lib, body, FALSE)
-					END
-				END
-			END ;
-			IF body = NIL THEN
-				Load(Kernel.LIB, bodyname, lib, body, FullName(Kernel.LIB))
-			END ;
 			IF body # NIL THEN
-				m := body();
-				rc := dlclose(lib)	(* reference count is maintained per module of lib *)
+				m := body(); (* no dlclose(lib) because no dlopen *)
+			ELSE
+				Load(name, bodyname, lib, body, FALSE);
+				IF body = NIL THEN
+					GetSubsys1(name, libname1);
+					IF libname1[0] # 0X THEN
+						Load(libname1, bodyname, lib, body, FALSE)
+					END
+				END ;
+				IF body = NIL THEN
+					GetSubsys2(name, libname2);
+					IF libname2[0] # 0X THEN
+						IF (libname2 # libname1) THEN
+							Load(libname2, bodyname, lib, body, FALSE)
+						END
+					END
+				END ;
+				IF body = NIL THEN
+					Load(Kernel.LIB, bodyname, lib, body, FullName(Kernel.LIB))
+				END ;
+				IF body # NIL THEN
+					Kernel.PushTrapCleaner(CloseLib, lib);
+					m := body();	(* increments reference count of lib *)
+					Kernel.PopTrapCleaner;
+					CloseLib(lib)
+				END
 			END
 		END ;
 		IF m # NIL THEN res := 0; resMsg := ""

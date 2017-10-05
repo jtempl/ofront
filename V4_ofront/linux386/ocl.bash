@@ -3,20 +3,27 @@
 # compile an Oberon module <M>.Mod into a shared library lib<M>.so
 #
 # SYNOPSIS
-#   ocl moduleName [ofrontOption [ccOption]]
-#
-# use single character "-" to skip ofrontOption
-# example: ocl hello - -g
+#   ocl.bash moduleName [ofrontOptions [ccOptions]]
 
-# translate <M>.Mod to <M>.c
-ofront $1.Mod $2
-
-# compile <M>.c to <M>.o
-cc -c $3 $1.c
-
-# link <M>.o into lib<M>.so
-cc -shared -L. -lOberonV4 $1.o -o lib$1.so
-
-# remove unnecessary files and show result
-rm $1.c $1.o
-ls -l lib$1.so
+if [ -z "$1" ]; then
+  echo "Compile an Oberon module <M>.Mod into a shared library lib<M>.so."
+  echo
+  echo Usage: $0 moduleName [ofrontOptions [ccOptions]]
+  echo
+  echo Use single character - or "\"\"" to skip ofrontOptions.
+  echo Examples:
+  echo "  " $0 hello - -g
+  echo "  " $0 MyModule -s "\""-g -Lmypath -lMyImport1 -lMyImport2"\""
+  echo "  " $0 TestPi -s "\""-g -lWiringPi"\""
+else
+  # translate <M>.Mod to <M>.c
+  ofront $1.Mod $2
+  if [ -r $1.c ]; then
+    # compile and link <M>.c into lib<M>.so
+    rm -f lib$1.so
+    cc $1.c -shared -o lib$1.so -L. -lOberonV4 $3
+    # remove intermediate file(s) and show result
+    rm $1.c
+    ls -l lib$1.so
+  fi
+fi

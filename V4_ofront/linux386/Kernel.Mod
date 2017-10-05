@@ -1,7 +1,8 @@
 MODULE Kernel; 
 (*
-  J. Templ, 16.4.95 
-  communication with C-runtime and storage management
+  communication with C-runtime and storage management, Linux Version
+  1995-04-16, jt, original version
+  2016-10-03, jt, trap cleaners added
 *)
   
   IMPORT SYSTEM, Unix, Args;
@@ -16,6 +17,12 @@ MODULE Kernel;
 
     ObjFinalizer* = PROCEDURE(obj: SYSTEM.PTR);
 
+    TrapCleaner* = PROCEDURE (data: LONGINT);
+    TrapCleanerNode = POINTER TO RECORD
+        trapCleaner: TrapCleaner;
+        data: LONGINT;
+        next: TrapCleanerNode;
+    END ;
 
   VAR
     (* trap handling *)
@@ -38,6 +45,7 @@ MODULE Kernel;
 
 
     timeStart: LONGINT; (* milliseconds *)
+    trapCleaners: TrapCleanerNode;
 
 
   PROCEDURE -include()
@@ -56,7 +64,7 @@ MODULE Kernel;
     "__sigsetjmp(env, savemask)";
 
   PROCEDURE -siglongjmp*(VAR env:Unix.JmpBuf; val: LONGINT)
-    "siglongjmp(env, val)";
+    "Kernel_CallTrapCleaners(); siglongjmp(env, val)";
 
   PROCEDURE -heapsize*(): LONGINT
     "SYSTEM_heapsize";
@@ -112,10 +120,10 @@ MODULE Kernel;
     VAR rs, ws, xs: Unix.FdSet; n: LONGINT; tv: Unix.Timeval;
   BEGIN
     rs := readSet;
-    FOR n := 0 TO 7 DO ws[n] := {}; xs[n] := {}; readySet[n] := {} END;
+    FOR n := 0 TO LEN(rs) - 1 DO ws[n] := {}; xs[n] := {}; readySet[n] := {} END;
     IF delay < 0 THEN delay := 0 END ;
     tv.sec := delay DIV 1000; tv.usec := delay MOD 1000 * 1000;
-    n := Unix.Select(256, rs, ws, xs, tv);
+    n := Unix.Select(LEN(rs) * 32, rs, ws, xs, tv);
     IF n >= 0 THEN readySet := rs END
   END Select;
 
@@ -171,6 +179,21 @@ MODULE Kernel;
       Exit(1);
     END
   END JmpBufCheck;
+
+  PROCEDURE PushTrapCleaner*(trapCleaner: TrapCleaner; data: LONGINT);
+    VAR n: TrapCleanerNode;
+  BEGIN NEW(n); n.trapCleaner := trapCleaner; n.data := data; n.next := trapCleaners; trapCleaners := n
+  END PushTrapCleaner;
+
+  PROCEDURE PopTrapCleaner*;
+  BEGIN
+    IF trapCleaners # NIL THEN trapCleaners := trapCleaners.next END
+  END PopTrapCleaner;
+
+  PROCEDURE CallTrapCleaners*;
+  BEGIN
+    WHILE trapCleaners # NIL DO trapCleaners.trapCleaner(trapCleaners.data); PopTrapCleaner END
+  END CallTrapCleaners;
 
 BEGIN
   EndianTest();
