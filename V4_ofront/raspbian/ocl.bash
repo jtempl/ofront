@@ -21,7 +21,7 @@ else
   if [ -r $1.c ]; then
     # compile and link <M>.c into lib<M>.so
     rm -f lib$1.so
-    cc $1.c -shared -o lib$1.so -L. -lOberonV4 $3
+    cc $1.c -I$OFRONT_HOME/V4_ofront -shared -o lib$1.so -L. -L$OFRONT_HOME/lib -lOberonV4 $3
     # remove intermediate file(s) and show result
     rm $1.c
     ls -l lib$1.so
