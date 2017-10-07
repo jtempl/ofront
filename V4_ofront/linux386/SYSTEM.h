@@ -147,7 +147,8 @@ static int __STRCMP(x, y)
 #define __R(i, ub)	(((unsigned)(long)(i)<(unsigned long)(ub))?i:(__HALT(-8),0))
 #define __RF(i, ub)	SYSTEM_RCHK((long)(i),(long)(ub))
 
-/* record type descriptors */
+/* record type descriptor: t = qualified type name, m = number of methods, n = number of pointers.
+A type tag points to blksz; positve offsets for ptr table, negative offsets for tproc table. */
 #define __TDESC(t, m, n) \
 	static struct t##__desc {\
 		long tproc[m]; \
@@ -156,7 +157,7 @@ static int __STRCMP(x, y)
 		long *base[__MAXEXT]; \
 		char *rsrvd; \
 		long blksz, ptr[n+1]; \
-	} t##__desc
+	} t##__data
 
 #define __BASEOFF	(__MAXEXT+1)
 #define __TPROC0OFF	(__BASEOFF+24/sizeof(long)+5)
@@ -165,14 +166,18 @@ static int __STRCMP(x, y)
 #define __ENUMP(adr, n, P)	SYSTEM_ENUMP(adr, (long)(n), P)
 #define __ENUMR(adr, typ, size, n, P)	SYSTEM_ENUMR(adr, typ, (long)(size), (long)(n), P)
 
+/* initialize type descriptor: t = qualified type name, t0 = qualified name of base type or t, level = extension level;
+copy to heap first for supporting module unloading with dlclose, which unmaps global variables */
 #define __INITYP(t, t0, level) \
-	t##__typ= &t##__desc.blksz; \
-	memcpy(t##__desc.base, t0##__typ - __BASEOFF, level*sizeof(long)); \
-	t##__desc.base[level]=t##__typ; \
-	t##__desc.module=(long)m; \
-	if(t##__desc.blksz!=sizeof(struct t)) __HALT(-15); \
-	t##__desc.blksz=(t##__desc.blksz+5*sizeof(long)-1)/(4*sizeof(long))*(4*sizeof(long)); \
-	SYSTEM_REGTYP(m, (long)&t##__desc.next); \
+	struct t##__desc *t##__desc = malloc(sizeof(struct t##__desc)); \
+	memcpy(t##__desc, &t##__data, sizeof(struct t##__desc)); \
+	t##__typ= &t##__desc->blksz; \
+	memcpy(t##__desc->base, t0##__typ - __BASEOFF, level*sizeof(long)); \
+	t##__desc->base[level]=t##__typ; \
+	t##__desc->module=(long)m; \
+	if(t##__desc->blksz!=sizeof(struct t)) __HALT(-15); \
+	t##__desc->blksz=(t##__desc->blksz+5*sizeof(long)-1)/(4*sizeof(long))*(4*sizeof(long)); \
+	SYSTEM_REGTYP(m, (long)&t##__desc->next); \
 	SYSTEM_INHERIT(t##__typ, t0##__typ)
 
 /* Oberon-2 type bound procedures support */
