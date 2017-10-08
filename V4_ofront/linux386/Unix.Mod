@@ -182,12 +182,6 @@ TYPE
 
   FdSet* = ARRAY 8 OF SET;
 
-  SigCtxPtr* = POINTER TO SigContext;
-  SigContext* = RECORD
-  END ;
-
-  SignalHandler* = PROCEDURE (sig, code: LONGINT; scp: SigCtxPtr);
-
   Dirent* = RECORD
     ino, off: LONGINT;
     reclen: INTEGER;
@@ -229,11 +223,19 @@ TYPE
 
   Name* = ARRAY OF CHAR;
 
+  SignalHandler* = PROCEDURE (sig, siginfo, sigctx: LONGINT);
+
   PROCEDURE -includeStat()
     "#include <sys/stat.h>";
 
   PROCEDURE -includeErrno()
     "#include <errno.h>";
+
+  PROCEDURE -includeSignal()
+    "#include <signal.h>";
+
+  PROCEDURE -externMemset()
+    "extern void* memset(void*, int, long);";
 
   PROCEDURE -err(): LONGINT
     "errno";
@@ -242,6 +244,35 @@ TYPE
   BEGIN
     RETURN err()
   END errno;
+
+  PROCEDURE -sigSetHandler*(sig: LONGINT; h: SignalHandler; VAR res: LONGINT)
+    "{struct sigaction a; memset(&a, '\0', sizeof(a)); a.sa_flags = SA_SIGINFO | SA_NODEFER; a.sa_sigaction = (void*)h; *res = sigaction(sig, &a, (void*)0);}";
+
+  PROCEDURE -siginfoErrno*(siginfo: LONGINT): LONGINT
+    "(LONGINT)((siginfo_t*)siginfo)->si_errno";
+
+  PROCEDURE -siginfoCode*(siginfo: LONGINT): LONGINT
+    "(LONGINT)((siginfo_t*)siginfo)->si_code";
+
+  PROCEDURE -siginfoAddr*(siginfo: LONGINT): LONGINT
+    "(LONGINT)((siginfo_t*)siginfo)->si_addr";
+
+  PROCEDURE SigSetHandler*(sig: LONGINT; handler: SignalHandler);
+		VAR res: LONGINT;
+  BEGIN sigSetHandler(sig, handler, res); ASSERT(res = 0)
+  END SigSetHandler;
+
+  PROCEDURE SiginfoErrno*(siginfo: LONGINT): LONGINT;
+  BEGIN RETURN siginfoErrno(siginfo)
+  END SiginfoErrno;
+
+  PROCEDURE SiginfoCode*(siginfo: LONGINT): LONGINT;
+  BEGIN RETURN siginfoCode(siginfo)
+  END SiginfoCode;
+
+  PROCEDURE SiginfoAddr*(siginfo: LONGINT): LONGINT;
+  BEGIN RETURN siginfoAddr(siginfo)
+  END SiginfoAddr;
 
   PROCEDURE -Exit*(n: LONGINT)
     "exit(n)";

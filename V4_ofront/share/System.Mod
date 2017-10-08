@@ -13,9 +13,6 @@ MODULE System; (*JG 25.4.90 / NW 22.4.90, JT 21.01.93*)
 		trapLevel: INTEGER;
 
 
-	PROCEDURE -signal(sig: LONGINT; func: Unix.SignalHandler)
-		"signal(sig, func)";
-
 	PROCEDURE -halt(): LONGINT
 		"SYSTEM_halt";
 
@@ -37,9 +34,9 @@ MODULE System; (*JG 25.4.90 / NW 22.4.90, JT 21.01.93*)
 	PROCEDURE -Locked(): BOOLEAN
 		"(SYSTEM_lock > 0)";
 
-	PROCEDURE Trap*(sig, code: LONGINT; scp: Unix.SigCtxPtr);
+	PROCEDURE Trap*(sig, siginfo, sigctx: LONGINT);
+		VAR addr: LONGINT;
 	BEGIN
-		signal(sig, Trap);
 		IF Locked() THEN
 			CASE sig OF
 			| 2, 13, 18: (* no change *)
@@ -81,10 +78,14 @@ MODULE System; (*JG 25.4.90 / NW 22.4.90, JT 21.01.93*)
 					END ;
 					resetHalt()
 			| 8:
-					Out.String("ARITHMETIC EXCEPTION,  code = "); Out.Int(code, 1)
+					Out.String("ARITHMETIC EXCEPTION")
 			| 10:
 					Out.String("BUS ERROR")
 			| 11:
+					(* SIGSEGV *)
+					(* first check if caused by a frame handler of an unloaded module; this would lead to recursion in Out. *)
+					addr := Unix.SiginfoAddr(siginfo);
+					IF addr # 0 THEN Viewers.CheckUnload(SYSTEM.VAL(Display.Handler, addr)) END ;
 					Out.String("SEGMENTATION VIOLATION")
 			| 13: 
 					(* broken pipe *)
@@ -97,11 +98,13 @@ MODULE System; (*JG 25.4.90 / NW 22.4.90, JT 21.01.93*)
 					END
 			| 18:
 					(* remove zombies *)
-					code := Unix.Wait(code); RETURN
+					(* code := Unix.Wait(code); TODO unclear *) RETURN
 			ELSE
 					Out.String("SIGNAL "); Out.Int(sig, 0)
 			END ;
 			Out.Ln
+		ELSE
+			Console.String("received a signal while handing a signal: sig="); Console.Int(sig, 0); Console.Ln
 		END ;
 		trapLevel := 0;
 		Kernel.siglongjmp(Kernel.trapEnv, 1)
@@ -567,12 +570,12 @@ MODULE System; (*JG 25.4.90 / NW 22.4.90, JT 21.01.93*)
 BEGIN
 	Texts.OpenWriter(W);
 	trapLevel := 0;
-	signal(2, Trap);	(* keyboard interrupt *)
-	signal(3, Trap);	(* quit *)
-	signal(4, Trap);	(* illegal instruction *)
-	signal(8, Trap);	(* arithmetic error *)
-	signal(10, Trap);	(* bus error *)
-	signal(11, Trap);	(* segmentation violation *)
-	signal(13, Trap);	(* unconnected pipe *)
+	Unix.SigSetHandler(2, Trap);	(* keyboard interrupt *)
+	Unix.SigSetHandler(3, Trap);	(* quit *)
+	Unix.SigSetHandler(4, Trap);	(* illegal instruction *)
+	Unix.SigSetHandler(8, Trap);	(* arithmetic error *)
+	Unix.SigSetHandler(10, Trap);	(* bus error *)
+	Unix.SigSetHandler(11, Trap);	(* segmentation violation *)
+	Unix.SigSetHandler(13, Trap);	(* unconnected pipe *)
 	IF Kernel.LIB = "" THEN Kernel.LIB := "OberonV4" END
 END System.
