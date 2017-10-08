@@ -4,12 +4,12 @@
 
 VERSION = raspbian-Pi3
 RELEASE = 1.4
-RELEASENAME = ofront-$(RELEASE)
+RELEASEDIR = ofront_$(RELEASE)
 LIBRARY = libOberonV4.so
 V4_ofront = V4_ofront
 CONFIG = Configuration.Mod
-TARDIR = /tmp/$(RELEASENAME)
-TARFILE = /tmp/$(RELEASENAME)_$(VERSION).tar
+TARDIR = /tmp/$(RELEASEDIR)
+TARFILE = /tmp/ofront-$(RELEASE)_$(VERSION).tar
 
 SETPATH = OBERON=.:../share
 OFRONT = $(SETPATH) ofront -s
@@ -213,6 +213,6 @@ tar:
 	chmod -R a-w $(TARDIR)/*/*
 	chmod -R a+r $(TARDIR)
 	rm -f /tmp/ofront /tmp/oberon
-	cd $(TARDIR)/..; tar cf $(TARFILE) $(RELEASENAME)
+	cd $(TARDIR)/..; tar cf $(TARFILE) $(RELEASEDIR)
 	$(ZIP) $(TARFILE)
 	echo "created file" $(TARFILE).gz
