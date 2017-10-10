@@ -998,6 +998,11 @@ MODULE OfrontOPC;	(* copyright (c) J. Templ 12.7.95 / 3.7.96 *)
 		OPM.WriteLn;
 	END DefineInter;
 
+	PROCEDURE NeedsRetval*(proc: OPT.Object): BOOLEAN; (* aux. variable __retval needed for return *)
+	BEGIN (* simple rule; ignores DUPlicated value arrays because not needed for Gcc *)
+		RETURN (proc^.typ # OPT.notyp) & ~proc^.scope^.leaf
+	END NeedsRetval;
+
 	PROCEDURE EnterProc* (proc: OPT.Object);
 		VAR var, scope: OPT.Object; typ: OPT.Struct; dim: INTEGER;
 	BEGIN
@@ -1008,8 +1013,9 @@ MODULE OfrontOPC;	(* copyright (c) J. Templ 12.7.95 / 3.7.96 *)
 		IdentList(scope^.scope, 0);
 		IF ~scope^.leaf THEN (* declare intermediate procedure scope record variable*)
 			BegStat; OPM.WriteString(Struct); OPM.WriteStringVar (scope^.name);
-			OPM.Write(Blank); OPM.WriteString(LocalScope); EndStat
+			OPM.Write(Blank); OPM.WriteString(LocalScope); EndStat;
 		END ;
+		IF NeedsRetval(proc) THEN BegStat; Ident(proc^.typ^.strobj); OPM.WriteString(" __retval"); EndStat END ;
 		var := proc^.link;
 		WHILE var # NIL DO (* declare copy of fixed size value array parameters *)
 			IF (var^.typ^.comp = Array) & (var^.mode = Var) THEN
