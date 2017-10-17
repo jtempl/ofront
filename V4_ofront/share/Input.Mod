@@ -191,8 +191,13 @@ MODULE Input;	(* RC 4.11.93 *)
 		to[0] := 0AX; X11.Rebind("Select", modlist, 0, to, 1); X11.Rebind("Select", modlist, 1, to, 1);
 		to[0] := 0C1X; X11.Rebind("Up", modlist, 0, to, 1); X11.Rebind("Up", modlist, 1, to, 1);
 		to[0] := 0C2X; X11.Rebind("Down", modlist, 0, to, 1); X11.Rebind("Down", modlist, 1, to, 1);
-		to[0] := 0C4X; X11.Rebind("Left", modlist, 0, to, 1); X11.Rebind("Left", modlist, 1, to, 1);
 		to[0] := 0C3X; X11.Rebind("Right", modlist, 0, to, 1); X11.Rebind("Right", modlist, 1, to, 1);
+		to[0] := 0C4X; X11.Rebind("Left", modlist, 0, to, 1); X11.Rebind("Left", modlist, 1, to, 1);
+		to[0] := 0C5X; X11.Rebind("Page_Up", modlist, 0, to, 1); X11.Rebind("Page_Up", modlist, 1, to, 1);
+		to[0] := 0C6X; X11.Rebind("Page_Down", modlist, 0, to, 1); X11.Rebind("Page_Down", modlist, 1, to, 1);
+		to[0] := 0C7X; X11.Rebind("End", modlist, 0, to, 1); X11.Rebind("End", modlist, 1, to, 1);
+		to[0] := 0C8X; X11.Rebind("Home", modlist, 0, to, 1); X11.Rebind("Begin", modlist, 1, to, 1);
+		to[0] := 0A1X; X11.Rebind("Delete", modlist, 0, to, 1); X11.Rebind("Begin", modlist, 1, to, 1);
 
 		modlist[0] := Control;
 		(*a diaeresis*) to[0] := 083X; X11.Rebind("a", modlist, 1, to, 1);
