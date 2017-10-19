@@ -17,13 +17,13 @@ MODULE Configuration;	(* jt 17.4.95 *)
 		Oberon.Log := TextFrames.Text(""); NEW(Oberon.Par);
 		Oberon.AllocateSystemViewer(0, X, Y);
 		logV := MenuViewers.New(
-			TextFrames.NewMenu("System.Log", LogMenu),
+			TextFrames.NewMenuEx("System.Log", "Log.Menu.Text", LogMenu),
 			TextFrames.NewText(Oberon.Log, 0),
 			TextFrames.menuH,
 			X, Y);
 		Oberon.AllocateSystemViewer(0, X, Y);
 		toolV := MenuViewers.New(
-			TextFrames.NewMenu("System.Tool", StandardMenu),
+			TextFrames.NewMenuEx("System.Tool", "System.Menu.Text", StandardMenu),
 			TextFrames.NewText(TextFrames.Text("System.Tool"), 0),
 			TextFrames.menuH,
 			X, Y);

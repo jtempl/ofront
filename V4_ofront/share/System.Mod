@@ -131,7 +131,7 @@ MODULE System; (*JG 25.4.90 / NW 22.4.90, JT 21.01.93*)
         IF S.class IN {Texts.Name, Texts.String} THEN
             Oberon.AllocateSystemViewer(par.vwr.X, X, Y);
 		    V := MenuViewers.New(
-              TextFrames.NewMenu(S.s, StandardMenu),
+              TextFrames.NewMenuEx(S.s, "System.Menu.Text", StandardMenu),
               TextFrames.NewText(TextFrames.Text(S.s), 0),
               TextFrames.menuH,
               X, Y)
@@ -143,7 +143,7 @@ MODULE System; (*JG 25.4.90 / NW 22.4.90, JT 21.01.93*)
 	BEGIN
         Oberon.AllocateSystemViewer(Oberon.Par.vwr.X, X, Y);
         logV := MenuViewers.New(
-          TextFrames.NewMenu("System.Log", LogMenu),
+          TextFrames.NewMenuEx("System.Log", "Log.Menu.Text", LogMenu),
           TextFrames.NewText(Oberon.Log, Max(0, Oberon.Log.len - 200)),
           TextFrames.menuH,
           X, Y)
@@ -305,7 +305,7 @@ MODULE System; (*JG 25.4.90 / NW 22.4.90, JT 21.01.93*)
         T := TextFrames.Text("");
         Oberon.AllocateSystemViewer(Oberon.Par.vwr.X, X, Y);
         V := MenuViewers.New(
-          TextFrames.NewMenu("System.ShowModules", StandardMenu),
+          TextFrames.NewMenuEx("System.ShowModules", "System.Menu.Text", StandardMenu),
           TextFrames.NewText(T, 0),
           TextFrames.menuH,
           X, Y);
@@ -332,7 +332,7 @@ MODULE System; (*JG 25.4.90 / NW 22.4.90, JT 21.01.93*)
 				Oberon.AllocateSystemViewer(Oberon.Par.vwr.X, X, Y);
 				T := TextFrames.Text("");
 				V := MenuViewers.New(
-					TextFrames.NewMenu("System.Commands", StandardMenu),
+					TextFrames.NewMenuEx("System.ShowCommands", "System.Menu.Text", StandardMenu),
 					TextFrames.NewText(T, 0),
 					TextFrames.menuH,
 					X, Y);
@@ -479,7 +479,7 @@ MODULE System; (*JG 25.4.90 / NW 22.4.90, JT 21.01.93*)
 		bufsize := Unix.ReadBlk(Unix.stdout, buf);
 		IF bufsize > 0 THEN t := TextFrames.Text("");
 			V := MenuViewers.New(
-				TextFrames.NewMenu("System.Execute", StandardMenu),
+				TextFrames.NewMenuEx("System.Execute", "System.Menu.Text", StandardMenu),
 				TextFrames.NewText(t, 0),
 				TextFrames.menuH,
 				X, Y);
