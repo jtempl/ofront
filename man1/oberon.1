@@ -2,7 +2,7 @@
 .SH NAME
 oberon - the Oberon operating environment
 .SH SYNOPSIS
-oberon [-f fontmapfile] [-d display] [-g geometry] [-c]
+oberon [-f fontmapfile] [-u displayunit] [-d display] [-g geometry] [-c]
 .SH DESCRIPTION
 oberon starts the Oberon operating environment, which may be used as an 
 integrated Ofront development system. Oberon requires an X-Windows server, 
@@ -57,10 +57,17 @@ defines that font names should be mapped according to fontmapfile.
 If option -f is not specified, no font mapping is performed.
 The main purpose of this option is to map fonts to bigger ones on displays
 with very small or unsharp pixels such as color monitors or for video projection.
-The file Big.Map is provided as an example for enlarging fonts.
+The files Big.Map and Medium.Map are provided as examples for enlarging fonts.
+See option -u for the effect of using Big.Map or Medium.Map on the display unit size.
 If font mapping is performed, the result of printing documents will not be exact.
 Therefore, if you want to get high quality printing results, don't use
 this option. 
+.TP
+-u displayunit
+defines the size of a display unit (pixel) in world coordinates, where one millimeter equals 36000.
+The default display unit is 10000, which is adequate for displays with about 90 dots per inch.
+If option -f Big.Map ist used, the default changes to 8000, for Medium.Map to 9000.
+displayunit must be a positive integer number smaller than 32768.
 .TP
 -d display
 specifies the display server as usual for X clients.
