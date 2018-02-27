@@ -1,7 +1,7 @@
 (*
 *	The Ofront runtime system, Version 1.4
 *
-*	Copyright (c) Software Templ, 1994-2016
+*	Copyright (c) Software Templ OG, 1994-2018
 *
 *	Module SYSTEM is subject to change any time without prior notification.
 *	Software Templ disclaims all warranties with regard to module SYSTEM,
@@ -16,16 +16,18 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 	CONST
 		ModNameLen = 20;
 		CmdNameLen = 24;
-		SZL = SIZE(LONGINT);
+		SZL = SIZE(LONGINT); (* TODO assumes SIZE(PTR) = SIZE(LONGINT), which may not hold for 64 bit targets *)
 		Unit = 4*SZL;	(* smallest possible heap block *)
 		ldUnit = 4;	(* Unit = 2^ldUnit, for unsigned division expressed as logical shift right *)
 		nofLists = 9;	(* number of freeList entries excluding sentinel *)
 		heapSize0 = 8000*Unit;	(* startup heap size *)
 
-	(* all blocks look the same:
-		free blocks describe themselves: size = Unit
+	(* Allocated and free blocks look the same: they start with a type tag pointing to a type descriptor.
+		A type descriptor starts with the block size followed by the pointer offset table (>=0) followed by a sentinel (< 0)
+		that describes the size of the pointer offset table. Free blocks have a pseudo type descriptor inside.
+		The size of free blocks must be <= Unit. Free blocks look like this:
 		tag = &tag++
-	->blksize
+	-> blksize
 		sentinel = -SZL
 		next
 	*)
@@ -35,11 +37,11 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 		endOff = SZL;	(* end of heap chunk *)
 		blkOff = 3*SZL;	(* first block in a chunk, starts with tag *)
 
-	(* heap blocks *)
-		tagOff = 0;	(* block starts with tag *)
-		sizeOff = SZL;	(* block size in free block relative to block start *)
-		sntlOff = 2*SZL;	(* pointer offset table sentinel in free block relative to block start *)
-		nextOff = 3*SZL;	(* next pointer in free block relative to block start *)
+	(* free heap blocks *)
+		tagOff = 0 * SZL;	(* any block starts with a tag *)
+		sizeOff = 1 * SZL;	(* block size in free block relative to block start *)
+		sntlOff = 2 * SZL;	(* pointer offset table sentinel in free block relative to block start *)
+		nextOff = 3 * SZL;	(* next pointer in free block relative to block start *)
 		NoPtrSntl = LONG(LONG(-SZL));
 
 
@@ -329,10 +331,10 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 	END MarkP;
 
 	PROCEDURE Scan;
-		VAR chnk, adr, end, start, tag, i, size, freesize: LONGINT;
+		VAR chnk, prevChnk, nextChnk, adr, end, start, tag, i, size, freesize: LONGINT;
 	BEGIN bigBlocks := 0; i := 1;
 		WHILE i < nofLists DO freeList[i] := 0; INC(i) END ;
-		freesize := 0; allocated := 0; chnk := heap;
+		freesize := 0; allocated := 0; chnk := heap; prevChnk := 0;
 		WHILE chnk # 0 DO
 			adr := chnk + blkOff; SYSTEM.GET(chnk + endOff, end);
 			WHILE uLT(adr, end) DO
@@ -359,7 +361,33 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 					INC(adr, size)
 				END
 			END ;
-			IF freesize # 0 THEN (*collect last block*)
+			(* new variant with recycling of empty chunks *)
+			SYSTEM.GET(chnk + nextChnkOff, nextChnk);
+			IF freesize # 0 THEN (*collect last block(s)*)
+				start := adr - freesize;
+				IF (start = chnk + blkOff) & (prevChnk # nextChnk) THEN (* chnk is empty and not the only node *)
+					DEC(heapsize, freesize);
+					IF prevChnk = 0 THEN heap := nextChnk; heapMin := nextChnk + blkOff + SZL
+					ELSIF nextChnk # 0 THEN SYSTEM.PUT(prevChnk + nextChnkOff, nextChnk)
+					ELSE SYSTEM.PUT(prevChnk + nextChnkOff, nextChnk); heapMax := end
+					END;
+					free(chnk)
+				ELSE
+					SYSTEM.PUT(start, start+SZL);
+					SYSTEM.PUT(start+sizeOff, freesize);
+					SYSTEM.PUT(start+sntlOff, NoPtrSntl);
+					i := SYSTEM.LSH(freesize, -ldUnit) (*uDIV Unit*);
+					IF uLT(i, nofLists) THEN SYSTEM.PUT(start + nextOff, freeList[i]); freeList[i] := start
+					ELSE SYSTEM.PUT(start + nextOff, bigBlocks); bigBlocks := start
+					END;
+					prevChnk :=  chnk
+				END;
+				freesize := 0
+			ELSE prevChnk :=  chnk
+			END;
+			chnk :=  nextChnk
+			(* old variant without recycling of empty chunks
+			IF freesize # 0 THEN (*collect last block(s)*)
 				start := adr - freesize;
 				SYSTEM.PUT(start, start+SZL);
 				SYSTEM.PUT(start+sizeOff, freesize);
@@ -370,6 +398,7 @@ MODULE SYSTEM;	(* J. Templ, 31.5.95 *)
 				END
 			END ;
 			SYSTEM.GET(chnk, chnk)
+			*)
 		END
 	END Scan;
 
