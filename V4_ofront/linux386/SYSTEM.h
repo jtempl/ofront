@@ -95,7 +95,7 @@ extern void SYSTEM_ENUMR();
 #define __SHORTF(x, y)	((int)(__RF((x)+(y),(y)+(y))-(y)))
 #define __CHR(x)	((CHAR)__R(x, 256))
 #define __CHRF(x)	((CHAR)__RF(x, 256))
-#define __DIV(x, y)	((x)>=0?(x)/(y):-(((y)-1-(x))/(y)))
+#define __DIV(x, y)	((x)>=0?(x)/(y):-(long)(((unsigned long)(y)-1-(unsigned long)(x))/(unsigned long)(y)))
 #define __DIVF(x, y)	SYSTEM_DIV((long)(x),(long)(y))
 #define __MOD(x, y)	((x)>=0?(x)%(y):__MODF(x,y))
 #define __MODF(x, y)	SYSTEM_MOD((long)(x),(long)(y))

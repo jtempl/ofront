@@ -320,7 +320,7 @@ MODULE OfrontOPV;	(* J. Templ 16.2.95 / 3.7.96
 		END
 	END SideEffects;
 
-	PROCEDURE Entier(n: OPT.Node; prec: INTEGER);
+	PROCEDURE Entier(n:OPT.Node; prec: INTEGER);
 	BEGIN
 		IF n^.typ^.form IN {Real, LReal} THEN
 			OPM.WriteString(EntierFunc); expr(n, MinPrec); OPM.Write(CloseParen)
