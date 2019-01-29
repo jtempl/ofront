@@ -3,6 +3,7 @@ MODULE OfrontOPV;	(* J. Templ 16.2.95 / 3.7.96
 	26.7.2002 jt bug fix in Len: wrong result if called for fixed Array
 	31.1.2007 jt synchronized with BlackBox version, in particular:
 		various promotion rules changed (long) => (LONGINT), xxxL avoided
+	4.2.2019 jt SideEffects replaced by IsSimpleExpr
 *)
 
 	IMPORT OPT := OfrontOPT, OPC := OfrontOPC, OPM := OfrontOPM, OPS := OfrontOPS;
@@ -313,12 +314,17 @@ MODULE OfrontOPV;	(* J. Templ 16.2.95 / 3.7.96
 		END
 	END Len;
 
-	PROCEDURE SideEffects(n: OPT.Node): BOOLEAN;
+	(* a simple expression has no side effects by function calls and no time-consuming designators,
+	   i.e. it may be safely and efficiently re-evaluated within a macro expansion *)
+	PROCEDURE IsSimpleExpr(n: OPT.Node): BOOLEAN;
 	BEGIN
-		IF n # NIL THEN RETURN (n^.class = Ncall) OR SideEffects(n^.left) OR SideEffects(n^.right)
-		ELSE RETURN FALSE
-		END
-	END SideEffects;
+		RETURN (n^.class = Nvar) OR (n^.class = Nconst) OR (n^.class = Nfield) & IsSimpleExpr(n^.left)
+	END IsSimpleExpr;
+
+	PROCEDURE IsSimpleDop(n: OPT.Node): BOOLEAN;
+	BEGIN
+		RETURN IsSimpleExpr(n^.left) & IsSimpleExpr(n^.right)
+	END IsSimpleDop;
 
 	PROCEDURE Entier(n:OPT.Node; prec: INTEGER);
 	BEGIN
@@ -339,7 +345,7 @@ MODULE OfrontOPV;	(* J. Templ 16.2.95 / 3.7.96
 			IF from < Int THEN OPM.WriteString("(int)"); expr(n, 9)
 			ELSE
 				IF OPM.ranchk IN OPM.opt THEN OPM.WriteString("__SHORT");
-					IF SideEffects(n) THEN OPM.Write("F") END ;
+					IF ~IsSimpleExpr(n) THEN OPM.Write("F") END ;
 					OPM.Write(OpenParen); Entier(n, MinPrec);
 					OPM.WriteString(Comma); OPM.WriteInt(OPM.MaxInt + 1); OPM.Write(CloseParen)
 				ELSE OPM.WriteString("(int)"); Entier(n, 9)
@@ -347,14 +353,14 @@ MODULE OfrontOPV;	(* J. Templ 16.2.95 / 3.7.96
 			END
 		ELSIF form = SInt THEN
 			IF OPM.ranchk IN OPM.opt THEN OPM.WriteString("__SHORT");
-				IF SideEffects(n) THEN OPM.Write("F") END ;
+				IF ~IsSimpleExpr(n) THEN OPM.Write("F") END ;
 				OPM.Write(OpenParen); Entier(n, MinPrec);
 				OPM.WriteString(Comma); OPM.WriteInt(OPM.MaxSInt + 1); OPM.Write(CloseParen)
 			ELSE OPM.WriteString("(int)"); Entier(n, 9)
 			END
 		ELSIF form = Char THEN
 			IF OPM.ranchk IN OPM.opt THEN OPM.WriteString("__CHR");
-				IF SideEffects(n) THEN OPM.Write("F") END ;
+				IF ~IsSimpleExpr(n) THEN OPM.Write("F") END ;
 				OPM.Write(OpenParen); Entier(n, MinPrec); OPM.Write(CloseParen)
 			ELSE OPM.WriteString("(CHAR)"); Entier(n, 9)
 			END
@@ -386,7 +392,7 @@ MODULE OfrontOPV;	(* J. Templ 16.2.95 / 3.7.96
 		OR (n^.right^.class = Nconst) & ((n^.right^.conval^.intval = 0) OR (n^.left^.typ^.comp # DynArr)) THEN
 			expr(n^.right, prec)
 		ELSE
-			IF SideEffects(n^.right) THEN OPM.WriteString("__XF(") ELSE OPM.WriteString("__X(") END ;
+			IF IsSimpleExpr(n^.right) THEN OPM.WriteString("__X(") ELSE OPM.WriteString("__XF(") END ;
 			expr(n^.right, MinPrec); OPM.WriteString(Comma); Len(d, dim); OPM.Write(CloseParen)
 		END
 	END Index;
@@ -600,13 +606,11 @@ MODULE OfrontOPV;	(* J. Templ 16.2.95 / 3.7.96
 					|	conv:
 								Convert(l, form, exprPrec)
 					|	abs:
-								IF SideEffects(l) THEN
-									IF l^.typ^.form < Real THEN
-										IF l^.typ^.form < LInt THEN OPM.WriteString("(int)") END ;
-										OPM.WriteString("__ABSF(")
-									ELSE OPM.WriteString("__ABSFD(")
-									END
-								ELSE OPM.WriteString("__ABS(")
+								IF IsSimpleExpr(l) THEN OPM.WriteString("__ABS(")
+								ELSIF l^.typ^.form < Real THEN
+									IF l^.typ^.form < LInt THEN OPM.WriteString("(int)") END ;
+									OPM.WriteString("__ABSF(")
+								ELSE OPM.WriteString("__ABSFD(")
 								END ;
 								expr(l, MinPrec); OPM.Write(CloseParen)
 					|	cap:
@@ -644,8 +648,8 @@ MODULE OfrontOPV;	(* J. Templ 16.2.95 / 3.7.96
 											IF r^.conval^.intval >= 0 THEN OPM.WriteString("__ASHL(")
 											ELSE OPM.WriteString("__ASHR(")
 											END
-										ELSIF SideEffects(r) THEN OPM.WriteString("__ASHF(")
-										ELSE OPM.WriteString("__ASH(")
+										ELSIF IsSimpleExpr(r) THEN OPM.WriteString("__ASH(")
+										ELSE OPM.WriteString("__ASHF(")
 										END
 							|	msk:
 										OPM.WriteString("__MASK(");
@@ -666,15 +670,15 @@ MODULE OfrontOPV;	(* J. Templ 16.2.95 / 3.7.96
 										ELSE OPM.WriteString("__ROT(")
 										END
 							|	div:
-										IF SideEffects(n) THEN
+										IF IsSimpleDop(n) THEN OPM.WriteString("__DIV(")
+										ELSE
 											IF form < LInt THEN OPM.WriteString("(int)") END ;
 											OPM.WriteString("__DIVF(")
-										ELSE OPM.WriteString("__DIV(")
 										END
 							|	mod:
 										IF form < LInt THEN OPM.WriteString("(int)") END ;
-										IF SideEffects(n) THEN OPM.WriteString("__MODF(")
-										ELSE OPM.WriteString("__MOD(")
+										IF IsSimpleDop(n) THEN OPM.WriteString("__MOD(")
+										ELSE OPM.WriteString("__MODF(")
 										END
 							END ;
 							expr(l, MinPrec);
