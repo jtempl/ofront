@@ -608,7 +608,7 @@ MODULE OfrontOPB;	(* RC 6.3.89 / 21.2.94 *)	(* object model 17.1.93 *)
 				IF f IN intSet THEN
 					IF (xval^.intval = OPM.MinLInt) & (yval^.intval = -1) THEN err(204)
 					ELSIF yval^.intval # 0 THEN
-						xval^.intval := xval^.intval DIV yval^.intval
+						xval^.intval := xval^.intval DIV yval^.intval; SetIntType(x)
 					ELSE err(205)
 					END
 				ELSIF f # Undef THEN err(103)
