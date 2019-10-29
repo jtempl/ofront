@@ -305,10 +305,16 @@ MODULE OfrontOPV;	(* J. Templ 16.2.95 / 3.7.96
 	PROCEDURE^ design(n: OPT.Node; prec: INTEGER);
 
 	PROCEDURE Len(n: OPT.Node; dim: LONGINT);
+		VAR d: LONGINT; array: OPT.Struct;
 	BEGIN
 		WHILE (n^.class = Nindex) & (n^.typ^.comp = DynArr(*26.7.2002*)) DO INC(dim); n := n^.left END ;
-		IF (n^.class = Nderef) & (n^.typ^.comp = DynArr) THEN
-			design(n^.left, 10); OPM.WriteString("->len["); OPM.WriteInt(dim); OPM.Write("]")
+		IF (n^.class = Nderef) & (n^.typ^.comp = DynArr) THEN d := dim; array := n^.typ;
+			WHILE d > 0 DO array := array^.BaseTyp; DEC(d) END ;
+			IF array^.comp = DynArr THEN
+				design(n^.left, 10); OPM.WriteString("->len["); OPM.WriteInt(dim); OPM.Write("]")
+			ELSE
+				OPM.WriteInt(array^.n); OPM.PromoteIntConstToLInt()
+			END
 		ELSE
 			OPC.Len(n^.obj, n^.typ, dim)
 		END
