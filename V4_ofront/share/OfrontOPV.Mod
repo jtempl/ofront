@@ -213,7 +213,7 @@ MODULE OfrontOPV;	(* J. Templ 16.2.95 / 3.7.96
 				IF typ^.form = Pointer THEN typ := typ^.BaseTyp END ;
 				IF typ^.comp = Record THEN TraverseRecord(typ) END
 			ELSIF mode = TProc THEN GetTProcNum(obj)
-			ELSIF mode = Var THEN TypSize(obj^.typ)
+			ELSIF mode IN {Var, VarPar} THEN TypSize(obj^.typ)
 			END ;
 			IF ~exported THEN (* do this only once *)
 				IF (mode IN {LProc, Typ}) & (obj^.mnolev > 0) THEN Stamp(obj^.name) END ;
@@ -449,7 +449,7 @@ MODULE OfrontOPV;	(* J. Templ 16.2.95 / 3.7.96
 						IF n^.typ^.comp = DynArr THEN
 							(*  element type is DynArr; finish Horner schema with virtual indices = 0*)
 							OPM.Write(")");
-							WHILE i < (d^.typ^.size - 4) DIV 4 DO
+							WHILE i <= d^.typ^.n DO
 								OPM.WriteString(" * "); Len(d, i);
 								INC(i)
 							END
